@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — Pathfinder Summit</title>
+  <link rel="stylesheet" href="/assets/base.css" />
+</head>
+<body>
+  <main>
+    <div id="flash"></div>
+    <div class="panel">
+      <h1>Sign in</h1>
+      <form id="login-form">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" required autofocus />
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required />
+        <button type="submit" id="submit">Sign in</button>
+      </form>
+      <p class="alt">No account? <a href="/register.html">Create one</a></p>
+    </div>
+  </main>
+  <script type="module" src="/assets/js/login.js"></script>
+</body>
+</html>

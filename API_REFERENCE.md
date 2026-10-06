@@ -1,24 +1,24 @@
 # API Reference — Pathfinder Summit Systems
 
-Five standalone systems. Each runs independently on its own port. The automation workflow interacts with all of them depending on the challenge tier (Easy: ClearLedger/ProcureOS/ReceiptHub; Medium: + MeridianGL; Hard: + AuditTrail).
+Five standalone systems. The automation workflow interacts with all of them depending on the challenge tier (Easy: ClearLedger/ProcureOS/ReceiptHub; Medium: + MeridianGL; Hard: + AuditTrail).
 
-| System | Port | Base URL | Auth |
-|---|---|---|---|
-| ClearLedger (Invoice Review) | 5001 | `http://localhost:5001` | `X-API-Key` header on `/api/*` |
-| ProcureOS (PO System) | 5002 | `http://localhost:5002` | `X-API-Key` header |
-| ReceiptHub (GR System) | 5003 | `http://localhost:5003` | `X-API-Key` header |
-| MeridianGL (GL Balance Sheet Viewer) | 5004 | `http://localhost:5004` | `X-API-Key` header |
-| AuditTrail (Fraud Flag + Close Status) | 5005 | `http://localhost:5005` | None |
+| System | Base URL | Auth |
+|---|---|---|
+| ClearLedger (Invoice Review) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger` | `X-API-Key` header on `/api/*` |
+| ProcureOS (PO System) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos` | `X-API-Key` header |
+| ReceiptHub (GR System) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub` | `X-API-Key` header |
+| MeridianGL (GL Balance Sheet Viewer) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl` | `X-API-Key` header |
+| AuditTrail (Fraud Flag + Close Status) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail` | None |
+
+Every system is a Supabase Edge Function. Endpoint paths in this document are relative to its base URL, for example `GET /api/po/PO-2024-0099` on ProcureOS is `GET https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/po/PO-2024-0099`. A logged-in web session's `Authorization: Bearer <token>` is accepted wherever an `X-API-Key` is.
 
 **Demo API keys**
 - ProcureOS: `demo-key-procureos`
 - ReceiptHub: `demo-key-receipthub`
 - MeridianGL: `demo-key-meridiangl`
-- ClearLedger: `demo-key-meridiangl` (currently shares MeridianGL's key table)
+- ClearLedger: `demo-key-clearledger`
 
-**Deployed on Vercel (one project, one domain)**
-
-Each system is served under its own path prefix, so the base URL is `https://<your-domain>/<system>` in place of `http://localhost:<port>`: `/clearledger`, `/procureos`, `/receipthub`, `/audittrail`, `/meridiangl`. For example `GET https://<your-domain>/procureos/api/po/PO-2024-0099`. The root path `/` is a landing page linking to all five. All UI pages require a username and password (create an account at `/register`, sign in at `/login`); one login covers every app. `/api/*` endpoints are unaffected and keep using `X-API-Key`. The deployment needs an `AUTH_SECRET` environment variable (any long random string, shared by all services); without it every UI page returns 503. Each UI also has a `/settings/api-keys` page (ClearLedger, ProcureOS, ReceiptHub) for generating keys.
+**Web UI.** The pages are a static site (the `web/` folder) that calls these functions from the browser. Sign in at `/login.html` (create an account at `/register.html`); one login covers every app, and the pages send it as a bearer token. API keys for ClearLedger, ProcureOS and ReceiptHub are managed on each app's API Keys page. Webhooks are configured with Supabase secrets: `supabase secrets set WEBHOOK_URL=... WEBHOOK_SECRET=...`.
 
 ---
 
@@ -77,7 +77,7 @@ Submit an extracted invoice with mismatch analysis. The automation calls this af
 
 **curl example**
 ```bash
-curl -X POST http://localhost:5001/api/invoices \
+curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices \
   -H "Content-Type: application/json" \
   -d '{
     "invoice_number": "INV-2024-001",
@@ -121,8 +121,8 @@ List invoices with optional filters.
 **Response** — array of invoice objects.
 
 ```bash
-curl "http://localhost:5001/api/invoices?status=pending"
-curl "http://localhost:5001/api/invoices?status=approved&page=1&limit=20"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=pending"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=approved&page=1&limit=20"
 ```
 
 ---
@@ -158,7 +158,7 @@ Get a single invoice by UUID, including all line items and action history.
 | 404 | Invoice not found |
 
 ```bash
-curl http://localhost:5001/api/invoices/550e8400-e29b-41d4-a716-446655440000
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000
 ```
 
 ---
@@ -191,7 +191,7 @@ Record an accountant's decision on a flagged invoice. Updates invoice status and
 | 404 | Invoice not found. |
 
 ```bash
-curl -X PATCH http://localhost:5001/api/invoices/550e8400-e29b-41d4-a716-446655440000/action \
+curl -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000/action \
   -H "Content-Type: application/json" \
   -d '{"action": "approve", "note": "Variance within acceptable range."}'
 ```
@@ -210,7 +210,7 @@ Get the current matching threshold percentage. The automation should read this b
 ```
 
 ```bash
-curl http://localhost:5001/api/settings/threshold
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold
 ```
 
 ---
@@ -230,7 +230,7 @@ Update the matching threshold.
 **Response** — `{"threshold_pct": 3.0, "updated_at": "..."}`
 
 ```bash
-curl -X PUT http://localhost:5001/api/settings/threshold \
+curl -X PUT https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold \
   -H "Content-Type: application/json" \
   -d '{"threshold_pct": 3.0}'
 ```
@@ -242,7 +242,7 @@ curl -X PUT http://localhost:5001/api/settings/threshold \
 Attaches (or replaces) the invoice file. Sent as `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff. Maximum 4 MB. Files are stored in the private Supabase Storage bucket `documents` under `invoices/{invoice_number}/`. Replacing a document deletes the previous file. Fires an `invoice.updated` webhook.
 
 ```bash
-curl -X POST http://localhost:5001/api/invoices/{id}/document -F "file=@invoice.pdf"
+curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/{id}/document -F "file=@invoice.pdf"
 ```
 
 Response `201`: `{ "id": "...", "document_name": "invoice.pdf", "document_path": "invoices/INV-2024-010/ab12cd34_invoice.pdf" }`
@@ -299,7 +299,7 @@ Holds PO data. The automation queries this to retrieve PO details for matching.
 | 404 | PO not found |
 
 ```bash
-curl http://localhost:5002/api/po/PO-2024-0099 \
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/po/PO-2024-0099 \
   -H "X-API-Key: demo-key-procureos"
 ```
 
@@ -328,7 +328,7 @@ List Purchase Orders with optional filters.
 ```
 
 ```bash
-curl "http://localhost:5002/api/pos?status=open" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos?status=open" \
   -H "X-API-Key: demo-key-procureos"
 ```
 
@@ -368,7 +368,7 @@ Create a Purchase Order via API.
 | 409 | Duplicate PO number |
 
 ```bash
-curl -X POST http://localhost:5002/api/pos \
+curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos \
   -H "X-API-Key: demo-key-procureos" \
   -H "Content-Type: application/json" \
   -d '{"po_number":"PO-2024-0100","vendor_id":"VEND-001","vendor_name":"Acme Supplies","status":"open","line_items":[{"item_code":"DESK-001","description":"Standing Desks","quantity":5,"unit_price":450.00}]}'
@@ -397,7 +397,7 @@ Delete a PO and all its line items.
 | 404 | Not found |
 
 ```bash
-curl -X DELETE http://localhost:5002/api/pos/PO-2024-0100 \
+curl -X DELETE https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos/PO-2024-0100 \
   -H "X-API-Key: demo-key-procureos"
 ```
 
@@ -473,7 +473,7 @@ Holds GR (goods received) records. The automation queries this to retrieve deliv
 | 403 | Invalid API key |
 
 ```bash
-curl http://localhost:5003/api/gr/by-po/PO-2024-0099 \
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/by-po/PO-2024-0099 \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -490,7 +490,7 @@ Get a single GR record by GR number.
 | 404 | Not found |
 
 ```bash
-curl http://localhost:5003/api/gr/GR-2024-0044 \
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/GR-2024-0044 \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -519,7 +519,7 @@ List GR records with optional filters.
 ```
 
 ```bash
-curl "http://localhost:5003/api/grs?po_number=PO-2024-0099" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/grs?po_number=PO-2024-0099" \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -603,7 +603,7 @@ List GL accounts (chart of accounts per subsidiary).
 | `subsidiary` | string | Filter by `A` \| `B` \| `C` |
 
 ```bash
-curl "http://localhost:5004/api/gl/accounts?subsidiary=A" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/accounts?subsidiary=A" \
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
@@ -622,7 +622,7 @@ List GL-vs-sub-ledger balances, joined with account info (`subsidiary`, `account
 **Response** — array of balance objects, each including `gl_balance`, `subledger_balance`, `variance_amount`, `source_doc_ref`, and `status` (`matched` \| `variance`).
 
 ```bash
-curl "http://localhost:5004/api/gl/balances?subsidiary=A&period=2024-11" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/balances?subsidiary=A&period=2024-11" \
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
@@ -639,7 +639,7 @@ List intercompany transaction log entries. Matches on either `subsidiary_from` o
 | `flag_type` | string | Filter by `matched` \| `timing_difference` \| `error` |
 
 ```bash
-curl "http://localhost:5004/api/gl/intercompany?subsidiary=B" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/intercompany?subsidiary=B" \
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
@@ -658,7 +658,7 @@ List accruals (estimated vs. actual per subsidiary/period).
 **Response fields of note:** `variance_pct`, `tolerance_pct`, `blocked_by_open_ap` (bool), `ap_reference`.
 
 ```bash
-curl "http://localhost:5004/api/gl/accruals?status=flagged" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/accruals?status=flagged" \
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
@@ -682,7 +682,7 @@ List flagged vendors.
 | `status` | string | Filter by `open` \| `cleared` \| `escalated` |
 
 ```bash
-curl "http://localhost:5005/api/vendor-flags?status=open"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor-flags?status=open"
 ```
 
 ---
@@ -696,7 +696,7 @@ Get a single vendor flag, including `registered_bank_details` vs. `submitted_ban
 | 404 | Not found |
 
 ```bash
-curl http://localhost:5005/api/vendor-flags/<uuid>
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor-flags/<uuid>
 ```
 
 ---
@@ -712,7 +712,7 @@ List flux analysis rows (actual vs. prior quarter vs. budget).
 | `status` | string | Filter by `explained` \| `unexplained` |
 
 ```bash
-curl "http://localhost:5005/api/flux-analysis?status=unexplained"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/flux-analysis?status=unexplained"
 ```
 
 ---
@@ -727,7 +727,7 @@ List audit trail entries, most recent first. `related_reference` ties an entry b
 | `related_reference` | string | Filter by the linked reference (e.g. an invoice number) |
 
 ```bash
-curl "http://localhost:5005/api/audit-trail?related_reference=INV-2024-001"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/audit-trail?related_reference=INV-2024-001"
 ```
 
 ---
@@ -755,7 +755,7 @@ curl "http://localhost:5005/api/audit-trail?related_reference=INV-2024-001"
 | 400 | Missing required fields |
 
 ```bash
-curl -X POST http://localhost:5005/api/audit-trail \
+curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/audit-trail \
   -H "Content-Type: application/json" \
   -d '{"action_checked":"Vendor bank details vs. ERP registration","decision":"Escalated — mismatch found","related_reference":"INV-2024-001"}'
 ```
@@ -773,7 +773,7 @@ List close status items (the open-items board).
 | `category` | string | Filter by category, e.g. `GL Variance`, `Vendor Flag`, `Accrual`, `Intercompany`, `Flux` |
 
 ```bash
-curl "http://localhost:5005/api/close-status?status=escalated"
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/close-status?status=escalated"
 ```
 
 ---
@@ -796,7 +796,7 @@ Update a close item's `status`, `owner`, and/or `note` (any subset).
 | 404 | Item not found |
 
 ```bash
-curl -X PATCH http://localhost:5005/api/close-status/<uuid> \
+curl -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/close-status/<uuid> \
   -H "Content-Type: application/json" \
   -d '{"status": "cleared"}'
 ```
@@ -842,20 +842,20 @@ The sequence the automation follows when processing an invoice (Easy tier):
 
 ```
 1. GET /api/settings/threshold                     → read tolerance %
-   ClearLedger: http://localhost:5001/api/settings/threshold
+   ClearLedger: https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold
 
 2. GET /api/po/{po_number}                         → fetch PO data
-   ProcureOS:   http://localhost:5002/api/po/{po_number}
+   ProcureOS:   https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/po/{po_number}
    Header:      X-API-Key: demo-key-procureos
 
 3. GET /api/gr/by-po/{po_number}                   → fetch all GR data for that PO
-   ReceiptHub:  http://localhost:5003/api/gr/by-po/{po_number}
+   ReceiptHub:  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/by-po/{po_number}
    Header:      X-API-Key: demo-key-receipthub
 
 4. [automation applies matching logic + computes variances]
 
 5. POST /api/invoices                              → post result to review queue
-   ClearLedger: http://localhost:5001/api/invoices
+   ClearLedger: https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices
    Body:        invoice data + line-level mismatch details
 ```
 

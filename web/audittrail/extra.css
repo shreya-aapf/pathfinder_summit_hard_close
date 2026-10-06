@@ -1,0 +1,15 @@
+/* Additions for the static port (sign-out control); style.css is the verbatim Flask stylesheet. */
+.signout-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.80);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.signout-btn:hover { background: rgba(255,255,255,.15); color: #fff; }

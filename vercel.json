@@ -1,19 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "home": { "root": "home", "framework": "flask" },
-    "audittrail": { "root": "audittrail", "framework": "flask" },
-    "clearledger": { "root": "clearledger", "framework": "flask" },
-    "meridiangl": { "root": "meridiangl", "framework": "flask" },
-    "procureos": { "root": "procureos", "framework": "flask" },
-    "receipthub": { "root": "receipthub", "framework": "flask" }
-  },
-  "rewrites": [
-    { "source": "/audittrail/:path*", "destination": { "service": "audittrail" } },
-    { "source": "/clearledger/:path*", "destination": { "service": "clearledger" } },
-    { "source": "/meridiangl/:path*", "destination": { "service": "meridiangl" } },
-    { "source": "/procureos/:path*", "destination": { "service": "procureos" } },
-    { "source": "/receipthub/:path*", "destination": { "service": "receipthub" } },
-    { "source": "/(.*)", "destination": { "service": "home" } }
-  ]
+  "buildCommand": null,
+  "outputDirectory": "web"
 }
