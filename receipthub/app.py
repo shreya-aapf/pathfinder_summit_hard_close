@@ -10,6 +10,7 @@ from datetime import date, datetime, timezone
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, abort, session
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from auth_gate import install_auth_gate
 
 load_dotenv()
 
@@ -33,6 +34,7 @@ class _PrefixMiddleware:
 
 app.wsgi_app = _PrefixMiddleware(app.wsgi_app)
 app.config['SESSION_COOKIE_NAME'] = 'receipthub_session'
+install_auth_gate(app)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
 
 supabase: Client = create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_KEY'])

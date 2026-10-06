@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, abort, Response, session
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from auth_gate import install_auth_gate
 from werkzeug.utils import secure_filename
 
 load_dotenv()
@@ -32,6 +33,7 @@ class _PrefixMiddleware:
 
 app.wsgi_app = _PrefixMiddleware(app.wsgi_app)
 app.config['SESSION_COOKIE_NAME'] = 'procureos_session'
+install_auth_gate(app)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB upload cap (Vercel rejects request bodies over 4.5 MB)
 

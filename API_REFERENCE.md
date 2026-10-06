@@ -18,7 +18,7 @@ Five standalone systems. Each runs independently on its own port. The automation
 
 **Deployed on Vercel (one project, one domain)**
 
-Each system is served under its own path prefix, so the base URL is `https://<your-domain>/<system>` in place of `http://localhost:<port>`: `/clearledger`, `/procureos`, `/receipthub`, `/audittrail`, `/meridiangl`. For example `GET https://<your-domain>/procureos/api/po/PO-2024-0099`. The root path `/` is a landing page linking to all five. Each UI also has a `/settings/api-keys` page (ClearLedger, ProcureOS, ReceiptHub) for generating keys.
+Each system is served under its own path prefix, so the base URL is `https://<your-domain>/<system>` in place of `http://localhost:<port>`: `/clearledger`, `/procureos`, `/receipthub`, `/audittrail`, `/meridiangl`. For example `GET https://<your-domain>/procureos/api/po/PO-2024-0099`. The root path `/` is a landing page linking to all five. All UI pages require a username and password (create an account at `/register`, sign in at `/login`); one login covers every app. `/api/*` endpoints are unaffected and keep using `X-API-Key`. The deployment needs an `AUTH_SECRET` environment variable (any long random string, shared by all services); without it every UI page returns 503. Each UI also has a `/settings/api-keys` page (ClearLedger, ProcureOS, ReceiptHub) for generating keys.
 
 ---
 
