@@ -94,7 +94,7 @@
   <p class="empty-state-title">No accruals found</p>
   <p class="empty-state-sub">
     {% if subsidiary_filter and subsidiary_filter != 'all' %}
-      No accruals for Subsidiary {{ subsidiary_filter }}. <a href="/accruals" class="link-plain">View all subsidiaries</a>
+      No accruals for Subsidiary {{ subsidiary_filter }}. <a href="{{ request.script_root }}/accruals" class="link-plain">View all subsidiaries</a>
     {% else %}
       No accruals have been recorded for this period yet.
     {% endif %}

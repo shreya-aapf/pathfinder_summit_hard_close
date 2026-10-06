@@ -47,7 +47,7 @@ function submitAction(button) {
   const originalText = button.textContent.trim();
   button.textContent = 'Saving…';
 
-  fetch('/api/invoices/' + invoiceId + '/action', {
+  fetch(window.APP_ROOT + '/ui/invoices/' + invoiceId + '/action', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: action, note: note }),
@@ -95,7 +95,7 @@ function submitThreshold(event) {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving…';
 
-  fetch('/api/settings/threshold', {
+  fetch(window.APP_ROOT + '/ui/settings/threshold', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ threshold_pct: value }),

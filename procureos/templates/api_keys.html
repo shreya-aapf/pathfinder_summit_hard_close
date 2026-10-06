@@ -26,7 +26,7 @@
 
 <div class="card" style="margin-bottom: 1.5rem;">
   <h2 class="card-title">Generate a new key</h2>
-  <form method="post" action="/settings/api-keys" style="display:flex; gap:0.75rem; align-items:flex-end; margin-top:0.75rem;">
+  <form method="post" action="{{ request.script_root }}/settings/api-keys" style="display:flex; gap:0.75rem; align-items:flex-end; margin-top:0.75rem;">
     <div style="flex:1;">
       <label class="form-label" for="key-label">Label</label>
       <input type="text" id="key-label" name="label" class="form-input" placeholder="e.g. AA Bot, Postman test" maxlength="100" />
@@ -52,7 +52,7 @@
         <td style="padding:0.6rem 0.75rem;">{{ k.label or '—' }}</td>
         <td style="padding:0.6rem 0.75rem; color:#64748b;">{{ k.created_at[:10] if k.created_at else '—' }}</td>
         <td style="padding:0.6rem 0.75rem; text-align:right;">
-          <form method="post" action="/settings/api-keys/{{ k.id }}/revoke"
+          <form method="post" action="{{ request.script_root }}/settings/api-keys/{{ k.id }}/revoke"
                 onsubmit="return confirm('Revoke this key? Any automation using it will stop working immediately.')">
             <button type="submit" class="btn btn-secondary btn-sm" style="color:#dc2626;">Revoke</button>
           </form>

@@ -88,7 +88,7 @@
   <p class="empty-state-title">No GL accounts found</p>
   <p class="empty-state-sub">
     {% if subsidiary_filter and subsidiary_filter != 'all' %}
-      No accounts for Subsidiary {{ subsidiary_filter }}. <a href="/" class="link-plain">View all subsidiaries</a>
+      No accounts for Subsidiary {{ subsidiary_filter }}. <a href="{{ request.script_root }}/" class="link-plain">View all subsidiaries</a>
     {% else %}
       No accounts have been loaded into the ledger yet.
     {% endif %}

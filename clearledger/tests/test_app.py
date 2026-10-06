@@ -181,3 +181,37 @@ def test_threshold_rejects_non_numeric(client):
     resp = client.put('/api/settings/threshold', json={'threshold_pct': 'not-a-number'},
                       headers=AUTH_HEADERS)
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Vercel path prefix and key-free UI routes
+# ---------------------------------------------------------------------------
+
+def test_serves_under_url_prefix(client):
+    resp = client.get('/clearledger/settings/api-keys')
+    assert resp.status_code == 200
+    assert b'/clearledger/static/style.css' in resp.data
+    assert b'href="/clearledger/settings"' in resp.data
+
+
+def test_ui_threshold_route_needs_no_key_but_api_does(client):
+    original = client.get('/api/settings/threshold', headers=AUTH_HEADERS).get_json()['threshold_pct']
+    try:
+        assert client.put('/ui/settings/threshold', json={'threshold_pct': 7.5}).status_code == 200
+        assert client.put('/api/settings/threshold', json={'threshold_pct': 7.5}).status_code == 401
+    finally:
+        client.put('/api/settings/threshold', json={'threshold_pct': original}, headers=AUTH_HEADERS)
+
+
+def test_ui_action_route_needs_no_key_but_api_does(client, cleanup_invoices):
+    number = _unique_invoice_number()
+    cleanup_invoices.append(number)
+    invoice_id = client.post('/api/invoices', headers=AUTH_HEADERS, json={
+        'invoice_number': number, 'vendor_id': 'TEST-VEND-001', 'vendor_name': 'Test Vendor Ltd',
+        'invoice_date': '2024-11-15', 'po_number': 'TEST-PO-0001', 'total_amount': 100.0,
+        'match_status': 'mismatch',
+    }).get_json()['id']
+    assert client.patch(f'/api/invoices/{invoice_id}/action', json={'action': 'approve'}).status_code == 401
+    resp = client.patch(f'/ui/invoices/{invoice_id}/action', json={'action': 'approve'})
+    assert resp.status_code == 200
+    assert resp.get_json()['status'] == 'approved'

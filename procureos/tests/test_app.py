@@ -166,3 +166,10 @@ def test_api_get_nonexistent_po(client):
 def test_api_delete_nonexistent_po(client):
     resp = client.delete(f'/api/pos/{uuid.uuid4()}', headers=AUTH_HEADERS)
     assert resp.status_code == 404
+
+
+def test_serves_under_url_prefix(client):
+    resp = client.get('/procureos/po/new')
+    assert resp.status_code == 200
+    assert b'href="/procureos/static/style.css"' in resp.data
+    assert b'href="/procureos/po/new"' in resp.data

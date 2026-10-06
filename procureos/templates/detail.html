@@ -4,13 +4,13 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="/" class="back-link">&larr; Purchase Orders</a>
+    <a href="{{ request.script_root }}/" class="back-link">&larr; Purchase Orders</a>
     <h1 class="page-title">{{ po.po_number }}</h1>
   </div>
   <div class="header-actions">
     <a href="{{ CLEARLEDGER_URL }}/?po_number={{ po.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View in ClearLedger ↗</a>
     <a href="{{ RECEIPTHUB_URL }}/?search={{ po.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptHub ↗</a>
-    <a href="/po/{{ po.po_number }}/edit" class="btn btn-secondary">Edit</a>
+    <a href="{{ request.script_root }}/po/{{ po.po_number }}/edit" class="btn btn-secondary">Edit</a>
     <button type="button" class="btn btn-danger" onclick="openDeleteModal('{{ po.po_number }}')">Delete</button>
   </div>
 </div>
@@ -74,7 +74,7 @@
     <span class="field-label">Supporting Document</span>
     <span class="field-value">
       {% if po.document_path %}
-        <a href="/po/{{ po.po_number }}/document" target="_blank" rel="noopener">{{ po.document_name }} ↗</a>
+        <a href="{{ request.script_root }}/po/{{ po.po_number }}/document" target="_blank" rel="noopener">{{ po.document_name }} ↗</a>
       {% else %}—{% endif %}
     </span>
   </div>

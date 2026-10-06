@@ -7,6 +7,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__, static_folder='public/static', static_url_path='/static')
+
+URL_PREFIX = '/audittrail'
+
+
+class _PrefixMiddleware:
+    # Vercel forwards the full public path; strip the prefix but keep it in SCRIPT_NAME.
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        if path == URL_PREFIX or path.startswith(URL_PREFIX + '/'):
+            environ['SCRIPT_NAME'] = URL_PREFIX
+            environ['PATH_INFO'] = path[len(URL_PREFIX):] or '/'
+        return self.wsgi_app(environ, start_response)
+
+
+app.wsgi_app = _PrefixMiddleware(app.wsgi_app)
+app.config['SESSION_COOKIE_NAME'] = 'audittrail_session'
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
 
 supabase: Client = create_client(
@@ -18,7 +37,7 @@ supabase: Client = create_client(
 # link is a plain URL, not Flask url_for(). ClearLedger exposes
 # /invoices/lookup/<invoice_number> specifically so AuditTrail (which only
 # knows invoice_number, not the invoice's UUID) can deep-link into it.
-CLEARLEDGER_URL = os.environ.get('CLEARLEDGER_URL', 'http://localhost:5001')
+CLEARLEDGER_URL = os.environ.get('CLEARLEDGER_URL', '/clearledger' if os.environ.get('VERCEL') else 'http://localhost:5001')
 
 
 @app.context_processor

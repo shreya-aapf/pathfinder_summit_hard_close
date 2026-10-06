@@ -96,7 +96,7 @@
   <p class="empty-state-title">No close status items found</p>
   <p class="empty-state-sub">
     {% if status_filter and status_filter != 'all' %}
-      No items with status "{{ status_filter }}". <a href="/">View all items</a>
+      No items with status "{{ status_filter }}". <a href="{{ request.script_root }}/">View all items</a>
     {% else %}
       No close items have been recorded yet.
     {% endif %}

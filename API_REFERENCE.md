@@ -4,7 +4,7 @@ Five standalone systems. Each runs independently on its own port. The automation
 
 | System | Port | Base URL | Auth |
 |---|---|---|---|
-| ClearLedger (Invoice Review) | 5001 | `http://localhost:5001` | None |
+| ClearLedger (Invoice Review) | 5001 | `http://localhost:5001` | `X-API-Key` header on `/api/*` |
 | ProcureOS (PO System) | 5002 | `http://localhost:5002` | `X-API-Key` header |
 | ReceiptHub (GR System) | 5003 | `http://localhost:5003` | `X-API-Key` header |
 | MeridianGL (GL Balance Sheet Viewer) | 5004 | `http://localhost:5004` | `X-API-Key` header |
@@ -14,6 +14,11 @@ Five standalone systems. Each runs independently on its own port. The automation
 - ProcureOS: `demo-key-procureos`
 - ReceiptHub: `demo-key-receipthub`
 - MeridianGL: `demo-key-meridiangl`
+- ClearLedger: `demo-key-meridiangl` (currently shares MeridianGL's key table)
+
+**Deployed on Vercel (one project, one domain)**
+
+Each system is served under its own path prefix, so the base URL is `https://<your-domain>/<system>` in place of `http://localhost:<port>`: `/clearledger`, `/procureos`, `/receipthub`, `/audittrail`, `/meridiangl`. For example `GET https://<your-domain>/procureos/api/po/PO-2024-0099`. The root path `/` is a landing page linking to all five. Each UI also has a `/settings/api-keys` page (ClearLedger, ProcureOS, ReceiptHub) for generating keys.
 
 ---
 

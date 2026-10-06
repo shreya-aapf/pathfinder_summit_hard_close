@@ -15,6 +15,25 @@ from werkzeug.utils import secure_filename
 load_dotenv()
 
 app = Flask(__name__, static_folder='public/static', static_url_path='/static')
+
+URL_PREFIX = '/clearledger'
+
+
+class _PrefixMiddleware:
+    # Vercel forwards the full public path; strip the prefix but keep it in SCRIPT_NAME.
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        if path == URL_PREFIX or path.startswith(URL_PREFIX + '/'):
+            environ['SCRIPT_NAME'] = URL_PREFIX
+            environ['PATH_INFO'] = path[len(URL_PREFIX):] or '/'
+        return self.wsgi_app(environ, start_response)
+
+
+app.wsgi_app = _PrefixMiddleware(app.wsgi_app)
+app.config['SESSION_COOKIE_NAME'] = 'clearledger_session'
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB upload cap (Vercel rejects request bodies over 4.5 MB)
 
@@ -26,9 +45,9 @@ supabase: Client = create_client(
 # Cross-app links — all five apps share one Supabase project but are
 # independent Flask processes on different ports, so links between them
 # are plain URLs, not Flask url_for().
-PROCUREOS_URL = os.environ.get('PROCUREOS_URL', 'http://localhost:5002')
-RECEIPTHUB_URL = os.environ.get('RECEIPTHUB_URL', 'http://localhost:5003')
-AUDITTRAIL_URL = os.environ.get('AUDITTRAIL_URL', 'http://localhost:5005')
+PROCUREOS_URL = os.environ.get('PROCUREOS_URL', '/procureos' if os.environ.get('VERCEL') else 'http://localhost:5002')
+RECEIPTHUB_URL = os.environ.get('RECEIPTHUB_URL', '/receipthub' if os.environ.get('VERCEL') else 'http://localhost:5003')
+AUDITTRAIL_URL = os.environ.get('AUDITTRAIL_URL', '/audittrail' if os.environ.get('VERCEL') else 'http://localhost:5005')
 
 
 @app.context_processor
@@ -510,9 +529,18 @@ def api_get_invoice(invoice_id):
     return jsonify(invoice)
 
 
+@app.route('/ui/invoices/<invoice_id>/action', methods=['PATCH'])
+def ui_invoice_action(invoice_id):
+    return _invoice_action(invoice_id)
+
+
 @app.route('/api/invoices/<invoice_id>/action', methods=['PATCH'])
 @require_api_key
 def api_invoice_action(invoice_id):
+    return _invoice_action(invoice_id)
+
+
+def _invoice_action(invoice_id):
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'Request body must be JSON'}), 400
@@ -638,9 +666,18 @@ def api_get_threshold():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/ui/settings/threshold', methods=['PUT'])
+def ui_set_threshold():
+    return _set_threshold()
+
+
 @app.route('/api/settings/threshold', methods=['PUT'])
 @require_api_key
 def api_set_threshold():
+    return _set_threshold()
+
+
+def _set_threshold():
     data = request.get_json(silent=True)
     if not data or 'threshold_pct' not in data:
         return jsonify({'error': 'Body must include threshold_pct'}), 400

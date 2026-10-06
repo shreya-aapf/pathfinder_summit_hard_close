@@ -5,10 +5,10 @@
 <div class="page-header">
   <div>
     {% if mode == 'edit' %}
-      <a href="/po/{{ po.po_number }}" class="back-link">&larr; {{ po.po_number }}</a>
+      <a href="{{ request.script_root }}/po/{{ po.po_number }}" class="back-link">&larr; {{ po.po_number }}</a>
       <h1 class="page-title">Edit Purchase Order</h1>
     {% else %}
-      <a href="/" class="back-link">&larr; Purchase Orders</a>
+      <a href="{{ request.script_root }}/" class="back-link">&larr; Purchase Orders</a>
       <h1 class="page-title">New Purchase Order</h1>
     {% endif %}
   </div>
@@ -237,10 +237,10 @@
 
   <div class="form-actions">
     {% if mode == 'edit' %}
-      <a href="/po/{{ po.po_number }}" class="btn btn-ghost">Cancel</a>
+      <a href="{{ request.script_root }}/po/{{ po.po_number }}" class="btn btn-ghost">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Changes</button>
     {% else %}
-      <a href="/" class="btn btn-ghost">Cancel</a>
+      <a href="{{ request.script_root }}/" class="btn btn-ghost">Cancel</a>
       <button type="submit" class="btn btn-primary">Create Purchase Order</button>
     {% endif %}
   </div>

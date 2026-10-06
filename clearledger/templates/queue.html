@@ -58,9 +58,9 @@
     </thead>
     <tbody>
       {% for inv in invoices %}
-      <tr class="table-row-link" onclick="window.location='/invoices/{{ inv.id }}'">
+      <tr class="table-row-link" onclick="window.location='{{ request.script_root }}/invoices/{{ inv.id }}'">
         <td class="cell-mono">
-          <a href="/invoices/{{ inv.id }}" class="link-plain">{{ inv.invoice_number }}</a>
+          <a href="{{ request.script_root }}/invoices/{{ inv.id }}" class="link-plain">{{ inv.invoice_number }}</a>
         </td>
         <td>
           <div class="vendor-name">{{ inv.vendor_name }}</div>
@@ -117,7 +117,7 @@
   <p class="empty-state-title">No invoices found</p>
   <p class="empty-state-sub">
     {% if status_filter and status_filter != 'all' %}
-      No invoices with status "{{ status_filter }}". <a href="/">View all invoices</a>
+      No invoices with status "{{ status_filter }}". <a href="{{ request.script_root }}/">View all invoices</a>
     {% else %}
       The automation hasn't posted any invoices yet.
     {% endif %}

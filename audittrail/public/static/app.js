@@ -48,7 +48,7 @@ function submitCloseStatusUpdate(event, form, itemId) {
   const originalText = button.textContent.trim();
   button.textContent = 'Saving…';
 
-  fetch('/api/close-status/' + itemId, {
+  fetch(window.APP_ROOT + '/api/close-status/' + itemId, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: status }),

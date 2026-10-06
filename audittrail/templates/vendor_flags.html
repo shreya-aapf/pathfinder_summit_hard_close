@@ -25,9 +25,9 @@
     </thead>
     <tbody>
       {% for flag in flags %}
-      <tr class="table-row-link {% if flag.status == 'escalated' %}row--escalated{% endif %}" onclick="window.location='/vendor-flags/{{ flag.id }}'">
+      <tr class="table-row-link {% if flag.status == 'escalated' %}row--escalated{% endif %}" onclick="window.location='{{ request.script_root }}/vendor-flags/{{ flag.id }}'">
         <td>
-          <div class="vendor-name"><a href="/vendor-flags/{{ flag.id }}" class="link-plain">{{ flag.vendor_name }}</a></div>
+          <div class="vendor-name"><a href="{{ request.script_root }}/vendor-flags/{{ flag.id }}" class="link-plain">{{ flag.vendor_name }}</a></div>
           <div class="vendor-id">{{ flag.vendor_id }}</div>
         </td>
         <td class="cell-mono">{{ flag.invoice_number or '—' }}</td>

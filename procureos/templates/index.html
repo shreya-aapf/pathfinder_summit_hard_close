@@ -4,11 +4,11 @@
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">Purchase Orders</h1>
-  <a href="/po/new" class="btn btn-primary">+ New PO</a>
+  <a href="{{ request.script_root }}/po/new" class="btn btn-primary">+ New PO</a>
 </div>
 
 <div class="toolbar">
-  <form method="get" action="/" class="search-form">
+  <form method="get" action="{{ request.script_root }}/" class="search-form">
     <input
       type="search"
       name="search"
@@ -22,17 +22,17 @@
     {% endif %}
     <button type="submit" class="btn btn-secondary">Search</button>
     {% if search %}
-      <a href="/?{% if status_filter %}status={{ status_filter }}{% endif %}" class="btn btn-ghost">Clear</a>
+      <a href="{{ request.script_root }}/?{% if status_filter %}status={{ status_filter }}{% endif %}" class="btn btn-ghost">Clear</a>
     {% endif %}
   </form>
 </div>
 
 <div class="status-tabs">
-  <a href="/?{% if search %}search={{ search }}{% endif %}" class="status-tab {% if not status_filter %}active{% endif %}">All</a>
-  <a href="/?status=open{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'open' %}active{% endif %}">Open</a>
-  <a href="/?status=partially_received{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'partially_received' %}active{% endif %}">Partially Received</a>
-  <a href="/?status=closed{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'closed' %}active{% endif %}">Closed</a>
-  <a href="/?status=cancelled{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'cancelled' %}active{% endif %}">Cancelled</a>
+  <a href="{{ request.script_root }}/?{% if search %}search={{ search }}{% endif %}" class="status-tab {% if not status_filter %}active{% endif %}">All</a>
+  <a href="{{ request.script_root }}/?status=open{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'open' %}active{% endif %}">Open</a>
+  <a href="{{ request.script_root }}/?status=partially_received{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'partially_received' %}active{% endif %}">Partially Received</a>
+  <a href="{{ request.script_root }}/?status=closed{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'closed' %}active{% endif %}">Closed</a>
+  <a href="{{ request.script_root }}/?status=cancelled{% if search %}&search={{ search }}{% endif %}" class="status-tab {% if status_filter == 'cancelled' %}active{% endif %}">Cancelled</a>
 </div>
 
 {% if pos %}
@@ -52,7 +52,7 @@
     <tbody>
       {% for po in pos %}
       <tr>
-        <td><a href="/po/{{ po.po_number }}" class="link-primary">{{ po.po_number }}</a></td>
+        <td><a href="{{ request.script_root }}/po/{{ po.po_number }}" class="link-primary">{{ po.po_number }}</a></td>
         <td>
           <div class="vendor-name">{{ po.vendor_name or '—' }}</div>
           {% if po.vendor_id %}<div class="text-muted text-sm">{{ po.vendor_id }}</div>{% endif %}
@@ -62,8 +62,8 @@
         <td class="text-right font-mono">{{ po.currency or "USD" }} {{ "%.2f"|format(po.total_amount or 0) }}</td>
         <td><span class="badge badge-{{ po.status }}">{{ po.status | replace('_', ' ') | title }}</span></td>
         <td class="actions-cell">
-          <a href="/po/{{ po.po_number }}" class="btn btn-ghost btn-xs">View</a>
-          <a href="/po/{{ po.po_number }}/edit" class="btn btn-ghost btn-xs">Edit</a>
+          <a href="{{ request.script_root }}/po/{{ po.po_number }}" class="btn btn-ghost btn-xs">View</a>
+          <a href="{{ request.script_root }}/po/{{ po.po_number }}/edit" class="btn btn-ghost btn-xs">Edit</a>
           <button
             type="button"
             class="btn btn-danger btn-xs"
@@ -80,7 +80,7 @@
   <p class="empty-message">
     {% if search %}No purchase orders match "{{ search }}".{% else %}No purchase orders yet.{% endif %}
   </p>
-  <a href="/po/new" class="btn btn-primary">Create your first PO</a>
+  <a href="{{ request.script_root }}/po/new" class="btn btn-primary">Create your first PO</a>
 </div>
 {% endif %}
 
