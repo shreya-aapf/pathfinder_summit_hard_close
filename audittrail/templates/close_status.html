@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Close Status{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Close Status Board</h1>
+    <p class="page-subtitle">Every open item tracked to resolution — cleared, documented, or escalated</p>
+  </div>
+</div>
+
+<!-- Status filter tabs -->
+<div class="filter-tabs">
+  {% set tabs = [
+    ('all',                  'All',                   counts.all),
+    ('escalated',            'Escalated',             counts.escalated),
+    ('exception_documented', 'Exception Documented',  counts.exception_documented),
+    ('cleared',              'Cleared',               counts.cleared),
+  ] %}
+  {% for value, label, count in tabs %}
+    <a href="?status={{ value }}"
+       class="filter-tab {% if status_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+      <span class="tab-count tab-count--{{ value }}">{{ count }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+{% if items %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Owner</th>
+        <th>Note</th>
+        <th>Related Reference</th>
+        <th>Updated</th>
+        <th>Update</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="{% if item.status == 'escalated' %}row--escalated{% endif %}">
+        <td>{{ item.item_name }}</td>
+        <td>{{ item.category }}</td>
+        <td>
+          {% if item.status == 'escalated' %}
+            <span class="badge badge--urgent">Escalated</span>
+          {% elif item.status == 'exception_documented' %}
+            <span class="badge badge--amber">Exception Documented</span>
+          {% elif item.status == 'cleared' %}
+            <span class="badge badge--green">Cleared</span>
+          {% else %}
+            <span class="badge badge--gray">{{ item.status }}</span>
+          {% endif %}
+        </td>
+        <td>{{ item.owner or '—' }}</td>
+        <td class="text-muted">{{ item.note or '—' }}</td>
+        <td class="cell-mono">
+          {% if item.related_reference %}
+            {% if item.related_reference.startswith('INV-') %}
+              <a href="{{ CLEARLEDGER_URL }}/invoices/lookup/{{ item.related_reference }}" target="_blank" rel="noopener" class="ref-tag">{{ item.related_reference }} ↗</a>
+            {% else %}
+              <span class="ref-tag">{{ item.related_reference }}</span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td class="cell-date">{{ item.updated_at[:16].replace('T', ' ') if item.updated_at else '—' }}</td>
+        <td>
+          <form class="status-form" onsubmit="return submitCloseStatusUpdate(event, this, '{{ item.id }}')">
+            <select class="status-select">
+              <option value="cleared" {% if item.status == 'cleared' %}selected{% endif %}>Cleared</option>
+              <option value="exception_documented" {% if item.status == 'exception_documented' %}selected{% endif %}>Exception Documented</option>
+              <option value="escalated" {% if item.status == 'escalated' %}selected{% endif %}>Escalated</option>
+            </select>
+            <button type="submit" class="btn btn--primary btn--sm">Save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No close status items found</p>
+  <p class="empty-state-sub">
+    {% if status_filter and status_filter != 'all' %}
+      No items with status "{{ status_filter }}". <a href="/">View all items</a>
+    {% else %}
+      No close items have been recorded yet.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

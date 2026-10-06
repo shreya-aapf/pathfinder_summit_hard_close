@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Matching Threshold</h1>
+    <p class="page-subtitle">
+      The automation flags any invoice where the variance exceeds this percentage.
+      Adjust this to control what reaches your review queue.
+    </p>
+  </div>
+</div>
+
+<div class="settings-card">
+  <div class="settings-current">
+    <div class="settings-current-label">Current Threshold</div>
+    <div class="settings-current-value">
+      {{ setting.value }}%
+    </div>
+    {% if setting.updated_at %}
+    <div class="settings-updated">
+      Last modified: {{ setting.updated_at[:16].replace('T', ' ') if setting.updated_at else '—' }} UTC
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="settings-divider"></div>
+
+  <div class="settings-form-section">
+    <h2 class="settings-form-title">Update Tolerance</h2>
+    <p class="settings-form-desc">
+      Invoices with a variance at or below this percentage will pass the matching check automatically.
+      Only invoices exceeding this threshold are routed to this review portal.
+    </p>
+
+    <form id="threshold-form" class="settings-form" onsubmit="submitThreshold(event)">
+      <div class="field-group">
+        <label class="field-label" for="threshold-input">Tolerance (%)</label>
+        <div class="input-row">
+          <input
+            type="number"
+            id="threshold-input"
+            name="threshold_pct"
+            class="number-input"
+            step="0.1"
+            min="0"
+            max="100"
+            value="{{ setting.value }}"
+            placeholder="e.g. 2.5"
+          />
+          <span class="input-unit">%</span>
+        </div>
+        <p class="field-hint">
+          Example: setting 2.5 means invoices with less than 2.5% variance are auto-approved by the automation.
+        </p>
+      </div>
+
+      <button type="submit" class="btn btn--primary" id="save-btn">
+        Save Threshold
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="settings-info-box">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+  <p>
+    Changes take effect on the <em>next</em> automation run. Invoices already in the queue are not re-evaluated.
+    Use <code>GET /api/settings/threshold</code> to read the current value programmatically.
+  </p>
+</div>
+{% endblock %}

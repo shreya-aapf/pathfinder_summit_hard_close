@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Intercompany{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Intercompany Log</h1>
+    <p class="page-subtitle">Cross-subsidiary transactions and their reconciliation flags</p>
+  </div>
+</div>
+
+<div class="info-note">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="16" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+  <span><code>timing_difference</code> means the same amount was posted by both subsidiaries, just in different periods — informational, not a booking error. <code>error</code> flags need investigation.</span>
+</div>
+
+<!-- Filter tabs -->
+<div class="filter-tabs">
+  {% set sub_tabs = [('all', 'All'), ('A', 'Sub A'), ('B', 'Sub B'), ('C', 'Sub C')] %}
+  {% for value, label in sub_tabs %}
+    <a href="?subsidiary={{ value }}&flag_type={{ flag_filter }}"
+       class="filter-tab {% if subsidiary_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+<div class="filter-tabs">
+  {% set flag_tabs = [('all', 'All Flags'), ('matched', 'Matched'), ('timing_difference', 'Timing Difference'), ('error', 'Error')] %}
+  {% for value, label in flag_tabs %}
+    <a href="?subsidiary={{ subsidiary_filter }}&flag_type={{ value }}"
+       class="filter-tab {% if flag_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if entries %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Transaction Ref</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Amount</th>
+        <th>Description</th>
+        <th>Posted (From)</th>
+        <th>Posted (To)</th>
+        <th>Flag</th>
+        <th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr class="{% if e.flag_type == 'error' %}row--variance{% elif e.flag_type == 'flagged' %}row--flagged{% endif %}">
+        <td class="cell-mono">{{ e.transaction_ref }}</td>
+        <td><span class="sub-chip">{{ e.subsidiary_from }}</span></td>
+        <td><span class="sub-chip">{{ e.subsidiary_to }}</span></td>
+        <td class="cell-amount">{{ "%.2f"|format(e.amount) }}</td>
+        <td>{{ e.description or '—' }}</td>
+        <td class="cell-date">{{ e.posted_date_from }}</td>
+        <td class="cell-date">{{ e.posted_date_to or '—' }}</td>
+        <td>
+          {% if e.flag_type == 'matched' %}
+            <span class="badge badge--green">Matched</span>
+          {% elif e.flag_type == 'timing_difference' %}
+            <span class="badge badge--amber">Timing Difference</span>
+          {% elif e.flag_type == 'error' %}
+            <span class="badge badge--red">Error</span>
+          {% else %}
+            <span class="badge badge--gray">{{ e.flag_type }}</span>
+          {% endif %}
+        </td>
+        <td class="text-muted">{{ e.note or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 1l4 4-4 4"/>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+      <path d="M7 23l-4-4 4-4"/>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No intercompany entries found</p>
+  <p class="empty-state-sub">No transactions match the current filters.</p>
+</div>
+{% endif %}
+{% endblock %}

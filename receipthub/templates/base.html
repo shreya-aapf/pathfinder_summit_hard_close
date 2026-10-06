@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}ReceiptHub{% endblock %} — ReceiptHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="topnav-inner">
+      <a href="{{ url_for('index') }}" class="topnav-logo">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="2" y="5" width="16" height="12" rx="1.5" stroke="#E8601C" stroke-width="1.8"/>
+          <path d="M6 5V4a4 4 0 0 1 8 0v1" stroke="#E8601C" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M7 10h6M7 13h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        ReceiptHub
+      </a>
+      <nav class="topnav-links">
+        <a href="{{ url_for('index') }}" class="topnav-link {% if request.endpoint == 'index' %}active{% endif %}">Receipts</a>
+        <a href="{{ url_for('api_keys') }}" class="topnav-link {% if request.endpoint in ('api_keys', 'create_api_key', 'revoke_api_key') %}active{% endif %}">API Keys</a>
+      </nav>
+      <div class="topnav-actions">
+        <a href="{{ url_for('gr_new') }}" class="btn btn-primary btn-sm">+ New Receipt</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

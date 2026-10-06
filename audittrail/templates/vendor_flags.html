@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Vendor Flags{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Vendor Flags</h1>
+    <p class="page-subtitle">Vendors flagged for bank-detail mismatches, duplicates, or other risk signals</p>
+  </div>
+</div>
+
+{% if flags %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Vendor</th>
+        <th>Invoice #</th>
+        <th>Flag Type</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>Flagged</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flag in flags %}
+      <tr class="table-row-link {% if flag.status == 'escalated' %}row--escalated{% endif %}" onclick="window.location='/vendor-flags/{{ flag.id }}'">
+        <td>
+          <div class="vendor-name"><a href="/vendor-flags/{{ flag.id }}" class="link-plain">{{ flag.vendor_name }}</a></div>
+          <div class="vendor-id">{{ flag.vendor_id }}</div>
+        </td>
+        <td class="cell-mono">{{ flag.invoice_number or '—' }}</td>
+        <td>
+          {% if flag.flag_type == 'bank_mismatch' %}
+            <span class="badge badge--urgent">Bank Mismatch</span>
+          {% elif flag.flag_type == 'duplicate_vendor' %}
+            <span class="badge badge--amber">Duplicate Vendor</span>
+          {% else %}
+            <span class="badge badge--gray">{{ flag.flag_type }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if flag.severity == 'high' %}
+            <span class="badge badge--red">High</span>
+          {% elif flag.severity == 'medium' %}
+            <span class="badge badge--amber">Medium</span>
+          {% else %}
+            <span class="badge badge--gray">Low</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if flag.status == 'open' %}
+            <span class="badge badge--urgent">Open</span>
+          {% elif flag.status == 'escalated' %}
+            <span class="badge badge--escalated">Escalated</span>
+          {% elif flag.status == 'cleared' %}
+            <span class="badge badge--green">Cleared</span>
+          {% else %}
+            <span class="badge badge--gray">{{ flag.status }}</span>
+          {% endif %}
+        </td>
+        <td class="cell-date">{{ flag.created_at[:10] if flag.created_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No vendor flags found</p>
+  <p class="empty-state-sub">No vendors have been flagged by the automation yet.</p>
+</div>
+{% endif %}
+{% endblock %}

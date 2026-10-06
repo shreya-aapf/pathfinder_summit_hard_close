@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Goods Received{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Goods Received</h1>
+    <p class="page-subtitle">Warehouse receipt records — {{ grs|length }} record{% if grs|length != 1 %}s{% endif %}{% if search %} matching "{{ search }}"{% endif %}</p>
+  </div>
+  <a href="{{ url_for('gr_new') }}" class="btn btn-primary">+ New Receipt</a>
+</div>
+
+<div class="toolbar">
+  <form method="get" action="{{ url_for('index') }}" class="search-form">
+    <input
+      type="search"
+      name="search"
+      value="{{ search }}"
+      placeholder="Search GR #, PO #, vendor, received by…"
+      class="search-input"
+    />
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}" />{% endif %}
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    {% if search %}<a href="{{ url_for('index', status=status_filter) }}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+  </form>
+
+  <div class="filter-tabs">
+    <a href="{{ url_for('index', search=search) }}" class="filter-tab {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('index', status='partial', search=search) }}" class="filter-tab {% if status_filter == 'partial' %}active{% endif %}">
+      <span class="badge badge-partial">Partial</span>
+    </a>
+    <a href="{{ url_for('index', status='complete', search=search) }}" class="filter-tab {% if status_filter == 'complete' %}active{% endif %}">
+      <span class="badge badge-complete">Complete</span>
+    </a>
+    <a href="{{ url_for('index', status='rejected', search=search) }}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+      <span class="badge badge-rejected">Rejected</span>
+    </a>
+  </div>
+</div>
+
+{% if grs %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>GR #</th>
+        <th>PO #</th>
+        <th>Vendor</th>
+        <th>Received Date</th>
+        <th>Received By</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for gr in grs %}
+      <tr>
+        <td><a href="{{ url_for('gr_detail', gr_number=gr.gr_number) }}" class="gr-link">{{ gr.gr_number }}</a></td>
+        <td class="mono">{{ gr.po_number }}</td>
+        <td>
+          <span class="vendor-name">{{ gr.vendor_name }}</span>
+          <span class="vendor-id">{{ gr.vendor_id }}</span>
+        </td>
+        <td>{{ gr.received_date }}</td>
+        <td>{{ gr.received_by }}</td>
+        <td><span class="badge badge-{{ gr.status }}">{{ gr.status|capitalize }}</span></td>
+        <td class="actions-cell">
+          <a href="{{ url_for('gr_edit', gr_number=gr.gr_number) }}" class="action-link">Edit</a>
+          <button
+            class="action-link action-link-danger"
+            onclick="openDeleteModal('{{ gr.gr_number }}')"
+          >Delete</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No goods received records found.</p>
+  <a href="{{ url_for('gr_new') }}" class="btn btn-primary btn-sm">Record first receipt</a>
+</div>
+{% endif %}
+
+<!-- Delete modal -->
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3 class="modal-title">Delete Receipt?</h3>
+    <p class="modal-body">This will permanently delete <strong id="deleteGrLabel"></strong> and all its line items. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <form id="deleteForm" method="post">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

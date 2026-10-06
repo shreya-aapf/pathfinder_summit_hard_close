@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Accruals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Accruals Schedule</h1>
+    <p class="page-subtitle">Estimated vs. actual accruals, by subsidiary and period</p>
+  </div>
+</div>
+
+<!-- Subsidiary filter tabs -->
+<div class="filter-tabs">
+  {% set tabs = [('all', 'All'), ('A', 'Subsidiary A'), ('B', 'Subsidiary B'), ('C', 'Subsidiary C')] %}
+  {% for value, label in tabs %}
+    <a href="?subsidiary={{ value }}{% if period_filter %}&period={{ period_filter }}{% endif %}"
+       class="filter-tab {% if subsidiary_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Sub</th>
+        <th>Period</th>
+        <th>Description</th>
+        <th>Estimated</th>
+        <th>Actual</th>
+        <th>Variance %</th>
+        <th>Tolerance %</th>
+        <th>Status</th>
+        <th>AP Reference</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="{% if row.blocked_by_open_ap %}row--blocked{% elif row.status == 'flagged' %}row--flagged{% else %}row--within_tolerance{% endif %}">
+        <td><span class="sub-chip">{{ row.subsidiary }}</span></td>
+        <td class="cell-mono">{{ row.period }}</td>
+        <td>{{ row.description }}</td>
+        <td class="cell-amount">{{ "%.2f"|format(row.estimated_amount) }}</td>
+        <td class="cell-amount">
+          {% if row.actual_amount is not none %}{{ "%.2f"|format(row.actual_amount) }}{% else %}—{% endif %}
+        </td>
+        <td class="cell-num">
+          {% if row.variance_pct is not none %}
+            {% set vp = row.variance_pct | float %}
+            {% if vp|abs > row.tolerance_pct %}
+              <span class="num-unfavorable">{{ "%.2f"|format(vp) }}%</span>
+            {% else %}
+              <span class="num-favorable">{{ "%.2f"|format(vp) }}%</span>
+            {% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td class="cell-num">{{ "%.2f"|format(row.tolerance_pct) }}%</td>
+        <td>
+          {% if row.blocked_by_open_ap %}
+            <span class="badge badge--red">Blocked</span>
+          {% elif row.status == 'flagged' %}
+            <span class="badge badge--amber">Flagged</span>
+          {% elif row.status == 'within_tolerance' %}
+            <span class="badge badge--green">Within Tolerance</span>
+          {% else %}
+            <span class="badge badge--gray">{{ row.status }}</span>
+          {% endif %}
+        </td>
+        <td class="cell-mono">
+          {% if row.blocked_by_open_ap and row.ap_reference %}
+            {{ row.ap_reference }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No accruals found</p>
+  <p class="empty-state-sub">
+    {% if subsidiary_filter and subsidiary_filter != 'all' %}
+      No accruals for Subsidiary {{ subsidiary_filter }}. <a href="/accruals" class="link-plain">View all subsidiaries</a>
+    {% else %}
+      No accruals have been recorded for this period yet.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

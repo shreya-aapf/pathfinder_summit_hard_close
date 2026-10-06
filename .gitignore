@@ -1,0 +1,21 @@
+# Secrets - never commit real environment files
+.env
+.env.*
+!.env.example
+!env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Editor / tooling
+.claude/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

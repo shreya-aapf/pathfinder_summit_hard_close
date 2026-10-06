@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{{ flag.vendor_name }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('vendor_flags') }}" class="back-link">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+  Vendor Flags
+</a>
+
+<div class="detail-header">
+  <div class="detail-header-left">
+    <h1 class="page-title">{{ flag.vendor_name }}</h1>
+    <div class="detail-meta">
+      <span><strong>Vendor ID:</strong> <span class="cell-mono">{{ flag.vendor_id }}</span></span>
+      {% if flag.invoice_number %}
+      <span><strong>Invoice:</strong> <a href="{{ CLEARLEDGER_URL }}/invoices/lookup/{{ flag.invoice_number }}" target="_blank" rel="noopener" class="cell-mono">{{ flag.invoice_number }} ↗</a></span>
+      {% endif %}
+      <span><strong>Severity:</strong> {{ flag.severity }}</span>
+    </div>
+  </div>
+  <div class="detail-header-right">
+    {% if flag.status == 'open' %}
+      <span class="badge badge--urgent">Open</span>
+    {% elif flag.status == 'escalated' %}
+      <span class="badge badge--escalated">Escalated</span>
+    {% elif flag.status == 'cleared' %}
+      <span class="badge badge--green">Cleared</span>
+    {% else %}
+      <span class="badge badge--gray">{{ flag.status }}</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if flag.flag_type == 'bank_mismatch' %}
+<div class="mismatch-banner">
+  <div class="mismatch-banner-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  </div>
+  <div class="mismatch-banner-body">
+    <div class="mismatch-banner-title">Bank detail mismatch on file</div>
+    <div class="mismatch-banner-detail">
+      Registered bank details do not match the details submitted with {{ flag.invoice_number or 'this record' }}. Do not release payment until verified.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<section class="section">
+  <h2 class="section-title">Evidence — Registered vs. Submitted</h2>
+  <div class="evidence-grid">
+    <div class="evidence-card">
+      <div class="evidence-card-label">Registered Bank Details</div>
+      <div class="evidence-card-value">{{ flag.registered_bank_details }}</div>
+    </div>
+    <div class="evidence-card evidence-card--mismatch">
+      <div class="evidence-card-label">Submitted Bank Details</div>
+      <div class="evidence-card-value">{{ flag.submitted_bank_details }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Flag Details</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <tbody>
+        <tr>
+          <td><strong>Flag Type</strong></td>
+          <td>{{ flag.flag_type }}</td>
+        </tr>
+        <tr>
+          <td><strong>Linked Invoice</strong></td>
+          <td class="cell-mono">
+            {% if flag.invoice_number %}
+              <a href="{{ CLEARLEDGER_URL }}/invoices/lookup/{{ flag.invoice_number }}" target="_blank" rel="noopener">{{ flag.invoice_number }} ↗</a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Flagged On</strong></td>
+          <td class="cell-date">{{ flag.created_at[:16].replace('T', ' ') if flag.created_at else '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

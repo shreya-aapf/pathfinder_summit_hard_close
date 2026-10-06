@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="detail-layout">
+  <!-- Left / main content -->
+  <div class="detail-main">
+
+    <!-- Back + header -->
+    <a href="{{ url_for('queue') }}" class="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Invoice Queue
+    </a>
+
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <h1 class="page-title">{{ invoice.invoice_number }}</h1>
+        <div class="detail-meta">
+          <span><strong>Vendor:</strong> {{ invoice.vendor_name }} ({{ invoice.vendor_id }})</span>
+          <span><strong>Date:</strong> {{ invoice.invoice_date }}</span>
+          <span><strong>PO:</strong> <a href="{{ PROCUREOS_URL }}/po/{{ invoice.po_number }}" target="_blank" rel="noopener" class="link-plain">{{ invoice.po_number }} ↗</a></span>
+          {% if invoice.gr_number %}
+          <span><strong>GR:</strong> <a href="{{ RECEIPTHUB_URL }}/gr/{{ invoice.gr_number }}" target="_blank" rel="noopener" class="link-plain">{{ invoice.gr_number }} ↗</a></span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="detail-header-right">
+        <div class="total-amount">${{ "%.2f"|format(invoice.total_amount) }}</div>
+        <div class="total-label">Total Invoice Amount</div>
+      </div>
+    </div>
+
+    <!-- Vendor fraud flag banner (from AuditTrail) -->
+    {% if vendor_flag %}
+    <div class="match-summary match-summary--high" style="margin-bottom: 14px;">
+      <div class="match-summary-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="match-summary-body">
+        <div class="match-summary-title">Vendor flagged in AuditTrail — {{ vendor_flag.flag_type | replace('_', ' ') }}</div>
+        <div class="match-summary-detail">Do not release payment until this is resolved.</div>
+      </div>
+      <div class="match-summary-badge">
+        <a href="{{ AUDITTRAIL_URL }}/vendor-flags/{{ vendor_flag.id }}" target="_blank" rel="noopener" class="btn btn--escalate" style="width:auto; padding: 6px 14px;">
+          View in AuditTrail ↗
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Match summary bar -->
+    {% set vp = invoice.variance_pct | float %}
+    {% set is_high = vp > threshold_pct %}
+    <div class="match-summary match-summary--{% if is_high %}high{% else %}low{% endif %}">
+      <div class="match-summary-icon">
+        {% if is_high %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        {% else %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        {% endif %}
+      </div>
+      <div class="match-summary-body">
+        <div class="match-summary-title">
+          {% if not invoice.match_status %}Not yet matched against PO and GR
+          {% elif is_high %}Variance exceeds threshold{% else %}Variance within tolerance{% endif %}
+        </div>
+        <div class="match-summary-detail">
+          Variance: <strong>${{ "%.2f"|format(invoice.variance_amount) }}</strong>
+          &nbsp;|&nbsp;
+          <strong>{{ "%.2f"|format(vp) }}%</strong>
+          &nbsp;vs threshold {{ "%.1f"|format(threshold_pct) }}%
+        </div>
+      </div>
+      <div class="match-summary-badge">
+        {% if invoice.match_status == 'mismatch' %}
+          <span class="badge badge--red">Mismatch</span>
+        {% elif not invoice.match_status %}
+          <span class="badge badge--gray">Awaiting Match</span>
+        {% else %}
+          <span class="badge badge--amber">Partial Match</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Line items table -->
+    <section class="section">
+      <h2 class="section-title">Line Items</h2>
+      {% if line_items %}
+      <div class="table-wrap">
+        <table class="data-table line-table">
+          <thead>
+            <tr>
+              <th style="width:48px">#</th>
+              <th>Description</th>
+              <th colspan="2" class="group-header">Invoice</th>
+              <th colspan="2" class="group-header">Purchase Order</th>
+              <th class="group-header">GR</th>
+              <th>Variance</th>
+              <th>Mismatch</th>
+            </tr>
+            <tr class="sub-header">
+              <th></th>
+              <th></th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Qty</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for li in line_items %}
+            {% set mt = li.mismatch_type %}
+            <tr class="line-item-row line-item-row--{{ mt }}">
+              <td class="cell-center">{{ li.line_number }}</td>
+              <td>{{ li.description }}</td>
+              <td class="cell-num">{{ li.invoice_qty }}</td>
+              <td class="cell-num">${{ "%.2f"|format(li.invoice_unit_price) }}</td>
+              <td class="cell-num {% if li.po_qty != li.invoice_qty %}cell-diff{% endif %}">{{ li.po_qty }}</td>
+              <td class="cell-num {% if li.po_unit_price != li.invoice_unit_price %}cell-diff{% endif %}">${{ "%.2f"|format(li.po_unit_price) }}</td>
+              <td class="cell-num {% if li.gr_qty != li.invoice_qty %}cell-diff{% endif %}">{{ li.gr_qty }}</td>
+              <td class="cell-num cell-variance">
+                {% if li.variance_amount %}
+                  ${{ "%.2f"|format(li.variance_amount) }}
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                {% if mt == 'ok' %}
+                  <span class="badge badge--gray">OK</span>
+                {% elif mt == 'price_variance' %}
+                  <span class="badge badge--red">Price Variance</span>
+                {% elif mt == 'qty_mismatch' %}
+                  <span class="badge badge--amber">Qty Mismatch</span>
+                {% elif mt == 'missing_gr' %}
+                  <span class="badge badge--purple">Missing GR</span>
+                {% else %}
+                  <span class="badge badge--gray">{{ mt }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted">No line items available for this invoice.</p>
+      {% endif %}
+    </section>
+
+    <!-- Attached document -->
+    <section class="section">
+      <h2 class="section-title">Invoice Document</h2>
+      <div class="doc-card">
+        {% if invoice.document_path %}
+        <div class="doc-card-current">
+          <a href="{{ url_for('view_invoice_document', invoice_id=invoice.id) }}" target="_blank" rel="noopener" class="link-plain">{{ invoice.document_name }} ↗</a>
+        </div>
+        {% else %}
+        <p class="text-muted">No document attached yet.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('upload_invoice_document', invoice_id=invoice.id) }}" enctype="multipart/form-data" class="doc-card-form">
+          <input type="file" name="document" class="text-input" required accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" />
+          <button type="submit" class="btn btn--primary btn--inline">{% if invoice.document_path %}Replace{% else %}Attach{% endif %}</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Action history -->
+    <section class="section">
+      <h2 class="section-title">Action History</h2>
+      {% if actions %}
+      <div class="timeline">
+        {% for act in actions %}
+        <div class="timeline-item">
+          <div class="timeline-dot timeline-dot--{{ act.action_type }}"></div>
+          <div class="timeline-body">
+            <div class="timeline-header">
+              {% if act.action_type == 'approve' %}
+                <span class="badge badge--green">Approved</span>
+              {% elif act.action_type == 'contact_vendor' %}
+                <span class="badge badge--blue">Contact Vendor</span>
+              {% elif act.action_type == 'escalate' %}
+                <span class="badge badge--purple">Escalated</span>
+              {% else %}
+                <span class="badge badge--gray">{{ act.action_type }}</span>
+              {% endif %}
+              <span class="timeline-time">{{ act.actioned_at[:16].replace('T', ' ') if act.actioned_at else '' }}</span>
+            </div>
+            {% if act.note %}
+            <div class="timeline-note">{{ act.note }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted">No actions taken yet.</p>
+      {% endif %}
+    </section>
+
+  </div>
+
+  <!-- Right action panel -->
+  <aside class="action-panel">
+    <div class="action-panel-inner">
+      <div class="action-panel-header">
+        <h3 class="action-panel-title">Take Action</h3>
+        <div class="action-current-status">
+          Current:&nbsp;
+          {% set st = invoice.status %}
+          {% if st == 'pending' %}
+            <span class="badge badge--amber">Pending</span>
+          {% elif st == 'approved' %}
+            <span class="badge badge--green">Approved</span>
+          {% elif st == 'escalated' %}
+            <span class="badge badge--purple">Escalated</span>
+          {% elif st == 'contacted' %}
+            <span class="badge badge--blue">Contacted</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <label class="field-label" for="action-note">Notes</label>
+      <textarea
+        id="action-note"
+        class="notes-textarea"
+        placeholder="Add a note about this decision (optional)…"
+        rows="4"
+      ></textarea>
+
+      <div class="action-buttons">
+        <button
+          class="btn btn--approve"
+          data-action="approve"
+          data-invoice-id="{{ invoice.id }}"
+          onclick="submitAction(this)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Approve Invoice
+        </button>
+        <button
+          class="btn btn--contact"
+          data-action="contact_vendor"
+          data-invoice-id="{{ invoice.id }}"
+          onclick="submitAction(this)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Contact Vendor
+        </button>
+        <button
+          class="btn btn--escalate"
+          data-action="escalate"
+          data-invoice-id="{{ invoice.id }}"
+          onclick="submitAction(this)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+          </svg>
+          Escalate
+        </button>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

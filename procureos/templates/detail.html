@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ po.po_number }} — ProcureOS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/" class="back-link">&larr; Purchase Orders</a>
+    <h1 class="page-title">{{ po.po_number }}</h1>
+  </div>
+  <div class="header-actions">
+    <a href="{{ CLEARLEDGER_URL }}/?po_number={{ po.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View in ClearLedger ↗</a>
+    <a href="{{ RECEIPTHUB_URL }}/?search={{ po.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptHub ↗</a>
+    <a href="/po/{{ po.po_number }}/edit" class="btn btn-secondary">Edit</a>
+    <button type="button" class="btn btn-danger" onclick="openDeleteModal('{{ po.po_number }}')">Delete</button>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="card po-header-card">
+    <div class="card-row">
+      <div class="card-field">
+        <span class="field-label">PO Number</span>
+        <span class="field-value font-mono">{{ po.po_number }}</span>
+      </div>
+      <div class="card-field">
+        <span class="field-label">Status</span>
+        <span class="badge badge-{{ po.status }}">{{ po.status | replace('_', ' ') | title }}</span>
+      </div>
+    </div>
+    <div class="card-row">
+      <div class="card-field">
+        <span class="field-label">Vendor Name</span>
+        <span class="field-value">{{ po.vendor_name or '—' }}</span>
+      </div>
+      <div class="card-field">
+        <span class="field-label">Vendor ID</span>
+        <span class="field-value font-mono">{{ po.vendor_id or '—' }}</span>
+      </div>
+    </div>
+    <div class="card-row">
+      <div class="card-field">
+        <span class="field-label">Issue Date</span>
+        <span class="field-value">{{ po.issue_date or '—' }}</span>
+      </div>
+      <div class="card-field">
+        <span class="field-label">Delivery Date</span>
+        <span class="field-value">{{ po.delivery_date or '—' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2 class="section-title">Purchase Justification</h2>
+</div>
+
+<div class="card justification-card">
+  {% set questions = [
+    ('What are you purchasing?', po.purchase_what),
+    ('Why do we need to purchase this?', po.purchase_why),
+    ("What will happen if we don't make this purchase?", po.no_purchase_impact),
+    ('Keep the lights on or nice to have?', {'keep_the_lights_on': 'Keep the lights on', 'nice_to_have': 'Nice to have'}.get(po.criticality)),
+    ('Another tool/service that does 70-80% of this?', po.alternative_tool),
+    ('ROI or benefit of the services', po.roi_benefit),
+    ('Other team OKRs this purchase is tied to', po.okr_alignment),
+  ] %}
+  {% for label, answer in questions %}
+  <div class="card-field">
+    <span class="field-label">{{ label }}</span>
+    <span class="field-value">{{ answer or '—' }}</span>
+  </div>
+  {% endfor %}
+  <div class="card-field">
+    <span class="field-label">Supporting Document</span>
+    <span class="field-value">
+      {% if po.document_path %}
+        <a href="/po/{{ po.po_number }}/document" target="_blank" rel="noopener">{{ po.document_name }} ↗</a>
+      {% else %}—{% endif %}
+    </span>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2 class="section-title">Line Items</h2>
+</div>
+
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center" style="width:60px;">#</th>
+        <th>Item Code</th>
+        <th>Description</th>
+        <th class="text-right">Quantity</th>
+        <th class="text-right">Unit Price</th>
+        <th class="text-right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in line_items %}
+      <tr>
+        <td class="text-center">{{ item.line_number }}</td>
+        <td class="font-mono">{{ item.item_code }}</td>
+        <td>{{ item.description or '—' }}</td>
+        <td class="text-right font-mono">{{ item.quantity }}</td>
+        <td class="text-right font-mono">{{ "%.2f"|format(item.unit_price or 0) }}</td>
+        <td class="text-right font-mono">{{ "%.2f"|format(item.amount or 0) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted">No line items.</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="5" class="text-right"><strong>Total</strong></td>
+        <td class="text-right font-mono"><strong>{{ po.currency or "USD" }} {{ "%.2f"|format(po.total_amount or 0) }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- Delete confirmation modal -->
+<div id="delete-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2 class="modal-title">Delete Purchase Order</h2>
+    <p class="modal-body">Are you sure you want to delete <strong id="delete-modal-po-number"></strong>? This action cannot be undone.</p>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <form id="delete-modal-form" method="post">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

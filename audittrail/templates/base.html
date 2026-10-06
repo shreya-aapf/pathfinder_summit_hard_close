@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}AuditTrail{% endblock %} — AuditTrail</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">&#9670;</span>
+        <span class="logo-text">AuditTrail</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('close_status_board') }}"
+           class="nav-link {% if request.endpoint == 'close_status_board' %}active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Close Status
+        </a>
+        <a href="{{ url_for('vendor_flags') }}"
+           class="nav-link {% if request.endpoint in ['vendor_flags', 'vendor_flag_detail'] %}active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+          Vendor Flags
+        </a>
+        <a href="{{ url_for('flux') }}"
+           class="nav-link {% if request.endpoint == 'flux' %}active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+          </svg>
+          Flux Analysis
+        </a>
+        <a href="{{ url_for('audit_log') }}"
+           class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Audit Log
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-label">Hard Close</span>
+        <span class="sidebar-footer-sub">Forensic Close Dashboard</span>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+              <div class="flash flash--{{ category }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

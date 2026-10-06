@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit {{ gr.gr_number }}{% else %}New Receipt{% endif %}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  {% if mode == 'edit' %}
+    <a href="{{ url_for('gr_detail', gr_number=gr.gr_number) }}" class="breadcrumb-link">← {{ gr.gr_number }}</a>
+  {% else %}
+    <a href="{{ url_for('index') }}" class="breadcrumb-link">← All Receipts</a>
+  {% endif %}
+</div>
+
+<h1 class="page-title">
+  {% if mode == 'edit' %}Edit Receipt{% else %}New Receipt{% endif %}
+</h1>
+
+<form
+  method="post"
+  action="{% if mode == 'edit' %}{{ url_for('gr_edit_post', gr_number=gr.gr_number) }}{% else %}{{ url_for('gr_new_post') }}{% endif %}"
+  class="receipt-form"
+  id="receiptForm"
+>
+  <div class="form-section">
+    <h2 class="form-section-title">Receipt Header</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="gr_number">GR Number <span class="required">*</span></label>
+        <input
+          type="text"
+          id="gr_number"
+          name="gr_number"
+          class="form-control"
+          value="{{ gr.gr_number if gr else '' }}"
+          {% if mode == 'edit' %}disabled{% endif %}
+          placeholder="GR-2024-0001"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="po_number">PO Number <span class="required">*</span></label>
+        <input
+          type="text"
+          id="po_number"
+          name="po_number"
+          class="form-control"
+          value="{{ gr.po_number if gr else '' }}"
+          placeholder="PO-2024-0001"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="vendor_id">Vendor ID</label>
+        <input
+          type="text"
+          id="vendor_id"
+          name="vendor_id"
+          class="form-control"
+          value="{{ gr.vendor_id if gr else '' }}"
+          placeholder="VEND-001"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="vendor_name">Vendor Name</label>
+        <input
+          type="text"
+          id="vendor_name"
+          name="vendor_name"
+          class="form-control"
+          value="{{ gr.vendor_name if gr else '' }}"
+          placeholder="Acme Supplies Ltd"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="received_date">Received Date</label>
+        <input
+          type="date"
+          id="received_date"
+          name="received_date"
+          class="form-control"
+          value="{{ gr.received_date if gr else '' }}"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="received_by">Received By</label>
+        <input
+          type="text"
+          id="received_by"
+          name="received_by"
+          class="form-control"
+          value="{{ gr.received_by if gr else '' }}"
+          placeholder="J. Santos"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-control">
+          <option value="partial" {% if gr and gr.status == 'partial' %}selected{% elif not gr %}selected{% endif %}>Partial</option>
+          <option value="complete" {% if gr and gr.status == 'complete' %}selected{% endif %}>Complete</option>
+          <option value="rejected" {% if gr and gr.status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-header">
+      <h2 class="form-section-title">Line Items</h2>
+      <button type="button" class="btn btn-secondary btn-sm" id="addLineBtn" onclick="addLineItem()">+ Add Line</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table line-form-table" id="lineItemsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item Code</th>
+            <th>Description</th>
+            <th class="num">Ordered Qty</th>
+            <th class="num">Received Qty</th>
+            <th class="num">Unit Price</th>
+            <th>Condition</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="lineItemsBody">
+          {% if gr and gr.line_items %}
+            {% for li in gr.line_items %}
+            <tr class="line-item-row" data-line="{{ loop.index }}">
+              <td class="line-num-cell">{{ loop.index }}</td>
+              <td><input type="text" name="line_item_{{ loop.index }}_item_code" class="form-control form-control-sm" value="{{ li.item_code }}" placeholder="ITEM-001" /></td>
+              <td><input type="text" name="line_item_{{ loop.index }}_description" class="form-control form-control-sm" value="{{ li.description }}" placeholder="Description" /></td>
+              <td><input type="number" name="line_item_{{ loop.index }}_quantity_ordered" class="form-control form-control-sm num" min="0" step="any" value="{{ li.quantity_ordered }}" onchange="updateVariance(this)" onkeyup="updateVariance(this)" /></td>
+              <td class="rcv-cell">
+                <input type="number" name="line_item_{{ loop.index }}_quantity_received" class="form-control form-control-sm num" min="0" step="any" value="{{ li.quantity_received }}" onchange="updateVariance(this)" onkeyup="updateVariance(this)" />
+                <span class="variance-warn" style="display:none;" title="Received less than ordered">!</span>
+              </td>
+              <td><input type="number" name="line_item_{{ loop.index }}_unit_price" class="form-control form-control-sm num" min="0" step="0.01" value="{{ li.unit_price }}" placeholder="0.00" /></td>
+              <td>
+                <select name="line_item_{{ loop.index }}_condition" class="form-control form-control-sm">
+                  <option value="good" {% if li.condition == 'good' %}selected{% endif %}>Good</option>
+                  <option value="damaged" {% if li.condition == 'damaged' %}selected{% endif %}>Damaged</option>
+                  <option value="rejected" {% if li.condition == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+              </td>
+              <td><button type="button" class="btn-remove-line" onclick="removeLine(this)" title="Remove line">×</button></td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr class="line-item-row" data-line="1">
+              <td class="line-num-cell">1</td>
+              <td><input type="text" name="line_item_1_item_code" class="form-control form-control-sm" placeholder="ITEM-001" /></td>
+              <td><input type="text" name="line_item_1_description" class="form-control form-control-sm" placeholder="Description" /></td>
+              <td><input type="number" name="line_item_1_quantity_ordered" class="form-control form-control-sm num" min="0" step="any" placeholder="0" onchange="updateVariance(this)" onkeyup="updateVariance(this)" /></td>
+              <td class="rcv-cell">
+                <input type="number" name="line_item_1_quantity_received" class="form-control form-control-sm num" min="0" step="any" placeholder="0" onchange="updateVariance(this)" onkeyup="updateVariance(this)" />
+                <span class="variance-warn" style="display:none;" title="Received less than ordered">!</span>
+              </td>
+              <td><input type="number" name="line_item_1_unit_price" class="form-control form-control-sm num" min="0" step="0.01" placeholder="0.00" /></td>
+              <td>
+                <select name="line_item_1_condition" class="form-control form-control-sm">
+                  <option value="good">Good</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </td>
+              <td><button type="button" class="btn-remove-line" onclick="removeLine(this)" title="Remove line">×</button></td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {% if mode == 'edit' %}Save Changes{% else %}Record Receipt{% endif %}
+    </button>
+    <a href="{% if mode == 'edit' %}{{ url_for('gr_detail', gr_number=gr.gr_number) }}{% else %}{{ url_for('index') }}{% endif %}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

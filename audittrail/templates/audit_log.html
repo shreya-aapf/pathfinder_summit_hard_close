@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Audit Log</h1>
+    <p class="page-subtitle">Every automated agent check and decision, in order — forensic. Every row is evidence.</p>
+  </div>
+</div>
+
+{% if entries %}
+<div class="audit-log">
+  {% for entry in entries %}
+  <div class="audit-entry {% if entry.escalation_reason %}audit-entry--escalated{% endif %}">
+    <div class="audit-entry-time">{{ entry.created_at[:19].replace('T', ' ') if entry.created_at else '—' }}</div>
+    <div class="audit-entry-body">
+      <div class="audit-entry-header">
+        <span class="audit-entry-agent">{{ entry.agent_name }}</span>
+        <span class="audit-entry-action">checked <strong>{{ entry.action_checked }}</strong> → decision: <strong>{{ entry.decision }}</strong></span>
+        {% if entry.related_reference %}
+          {% if entry.related_reference.startswith('INV-') %}
+            <a href="{{ CLEARLEDGER_URL }}/invoices/lookup/{{ entry.related_reference }}" target="_blank" rel="noopener" class="ref-tag">{{ entry.related_reference }} ↗</a>
+          {% else %}
+            <span class="ref-tag">{{ entry.related_reference }}</span>
+          {% endif %}
+        {% endif %}
+        {% if entry.escalation_reason %}
+          <span class="badge badge--urgent">Escalated</span>
+        {% endif %}
+      </div>
+      {% if entry.evidence %}
+      <div class="audit-entry-evidence">{{ entry.evidence }}</div>
+      {% endif %}
+      {% if entry.escalation_reason %}
+      <div class="audit-entry-escalation"><strong>Escalation reason:</strong> {{ entry.escalation_reason }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No audit trail entries found</p>
+  <p class="empty-state-sub">The automation hasn't logged any checks yet.</p>
+</div>
+{% endif %}
+{% endblock %}

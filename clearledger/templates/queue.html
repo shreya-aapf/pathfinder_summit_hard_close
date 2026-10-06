@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice Queue{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Invoice Queue</h1>
+    <p class="page-subtitle">Flagged invoices awaiting review from the matching workflow</p>
+  </div>
+</div>
+
+{% if po_number_filter or vendor_id_filter %}
+<div class="flash flash--success" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+  <span>
+    {% if po_number_filter %}Filtered by PO <strong>{{ po_number_filter }}</strong>{% endif %}
+    {% if po_number_filter and vendor_id_filter %} &middot; {% endif %}
+    {% if vendor_id_filter %}Filtered by vendor <strong>{{ vendor_id_filter }}</strong>{% endif %}
+    — linked from another system.
+  </span>
+  <a href="{{ url_for('queue', status=status_filter) }}" class="link-plain">Clear filter</a>
+</div>
+{% endif %}
+
+<!-- Status filter tabs -->
+<div class="filter-tabs">
+  {% set tabs = [
+    ('all',       'All',       counts.all),
+    ('pending',   'Pending',   counts.pending),
+    ('approved',  'Approved',  counts.approved),
+    ('escalated', 'Escalated', counts.escalated),
+    ('contacted', 'Contacted', counts.contacted),
+  ] %}
+  {% for value, label, count in tabs %}
+    <a href="?status={{ value }}"
+       class="filter-tab {% if status_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+      <span class="tab-count tab-count--{{ value }}">{{ count }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<!-- Invoice table -->
+{% if invoices %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>Vendor</th>
+        <th>PO Number</th>
+        <th>Amount</th>
+        <th>Variance %</th>
+        <th>Mismatch</th>
+        <th>Status</th>
+        <th>Received</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr class="table-row-link" onclick="window.location='/invoices/{{ inv.id }}'">
+        <td class="cell-mono">
+          <a href="/invoices/{{ inv.id }}" class="link-plain">{{ inv.invoice_number }}</a>
+        </td>
+        <td>
+          <div class="vendor-name">{{ inv.vendor_name }}</div>
+          <div class="vendor-id">{{ inv.vendor_id }}</div>
+        </td>
+        <td class="cell-mono">{{ inv.po_number }}</td>
+        <td class="cell-amount">${{ "%.2f"|format(inv.total_amount) }}</td>
+        <td>
+          {% set vp = inv.variance_pct | float %}
+          <span class="variance-pct {% if vp > 2.5 %}variance-pct--high{% else %}variance-pct--low{% endif %}">
+            {{ "%.2f"|format(vp) }}%
+          </span>
+        </td>
+        <td>
+          {% set ms = inv.match_status %}
+          {% if ms == 'mismatch' %}
+            <span class="badge badge--red">Mismatch</span>
+          {% elif ms == 'partial_match' %}
+            <span class="badge badge--amber">Partial Match</span>
+          {% else %}
+            <span class="badge badge--gray">{{ ms }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set st = inv.status %}
+          {% if st == 'pending' %}
+            <span class="badge badge--amber">Pending</span>
+          {% elif st == 'approved' %}
+            <span class="badge badge--green">Approved</span>
+          {% elif st == 'escalated' %}
+            <span class="badge badge--purple">Escalated</span>
+          {% elif st == 'contacted' %}
+            <span class="badge badge--blue">Contacted</span>
+          {% else %}
+            <span class="badge badge--gray">{{ st }}</span>
+          {% endif %}
+        </td>
+        <td class="cell-date">
+          {{ inv.created_at[:10] if inv.created_at else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+      <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No invoices found</p>
+  <p class="empty-state-sub">
+    {% if status_filter and status_filter != 'all' %}
+      No invoices with status "{{ status_filter }}". <a href="/">View all invoices</a>
+    {% else %}
+      The automation hasn't posted any invoices yet.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

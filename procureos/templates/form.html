@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit {{ po.po_number }}{% else %}New Purchase Order{% endif %} — ProcureOS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    {% if mode == 'edit' %}
+      <a href="/po/{{ po.po_number }}" class="back-link">&larr; {{ po.po_number }}</a>
+      <h1 class="page-title">Edit Purchase Order</h1>
+    {% else %}
+      <a href="/" class="back-link">&larr; Purchase Orders</a>
+      <h1 class="page-title">New Purchase Order</h1>
+    {% endif %}
+  </div>
+</div>
+
+<form
+  method="post"
+  action="{% if mode == 'edit' %}/po/{{ po.po_number }}/edit{% else %}/po/new{% endif %}"
+  id="po-form"
+  enctype="multipart/form-data"
+>
+  <div class="form-card">
+    <h2 class="form-section-title">PO Details</h2>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="po_number" class="form-label">PO Number <span class="required">*</span></label>
+        <input
+          type="text"
+          id="po_number"
+          name="po_number"
+          class="form-input"
+          value="{{ po.po_number if po else '' }}"
+          {% if mode == 'edit' %}disabled{% else %}required placeholder="PO-2024-0001"{% endif %}
+        />
+        {% if mode == 'edit' %}
+          <input type="hidden" name="po_number" value="{{ po.po_number }}" />
+        {% endif %}
+      </div>
+
+      <div class="form-field">
+        <label for="status" class="form-label">Status</label>
+        <select id="status" name="status" class="form-input form-select">
+          {% set current_status = po.status if po else 'open' %}
+          <option value="open" {% if current_status == 'open' %}selected{% endif %}>Open</option>
+          <option value="partially_received" {% if current_status == 'partially_received' %}selected{% endif %}>Partially Received</option>
+          <option value="closed" {% if current_status == 'closed' %}selected{% endif %}>Closed</option>
+          <option value="cancelled" {% if current_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="currency" class="form-label">Currency</label>
+        <select id="currency" name="currency" class="form-input form-select">
+          {% set current_currency = (po.currency if po else None) or 'USD' %}
+          {% for code in ['USD', 'EUR', 'INR', 'GBP'] %}
+          <option value="{{ code }}" {% if current_currency == code %}selected{% endif %}>{{ code }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="vendor_id" class="form-label">Vendor ID</label>
+        <input
+          type="text"
+          id="vendor_id"
+          name="vendor_id"
+          class="form-input"
+          value="{{ po.vendor_id if po else '' }}"
+          placeholder="VEND-001"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="vendor_name" class="form-label">Vendor Name</label>
+        <input
+          type="text"
+          id="vendor_name"
+          name="vendor_name"
+          class="form-input"
+          value="{{ po.vendor_name if po else '' }}"
+          placeholder="Acme Supplies Ltd"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="issue_date" class="form-label">Issue Date</label>
+        <input
+          type="date"
+          id="issue_date"
+          name="issue_date"
+          class="form-input"
+          value="{{ po.issue_date if po else '' }}"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="delivery_date" class="form-label">Delivery Date</label>
+        <input
+          type="date"
+          id="delivery_date"
+          name="delivery_date"
+          class="form-input"
+          value="{{ po.delivery_date if po else '' }}"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2 class="form-section-title">Purchase Justification</h2>
+    <div class="form-grid">
+      {% set req = mode != 'edit' %}
+      <div class="form-field form-field--full">
+        <label for="purchase_what" class="form-label">What are you purchasing? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="purchase_what" name="purchase_what" class="form-input form-textarea" rows="2" {% if req %}required{% endif %}>{{ po.purchase_what or '' if po else '' }}</textarea>
+      </div>
+
+      <div class="form-field form-field--full">
+        <label for="purchase_why" class="form-label">Why do we need to purchase this? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="purchase_why" name="purchase_why" class="form-input form-textarea" rows="3" {% if req %}required{% endif %}>{{ po.purchase_why or '' if po else '' }}</textarea>
+      </div>
+
+      <div class="form-field form-field--full">
+        <label for="no_purchase_impact" class="form-label">What will happen if we don't make this purchase? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="no_purchase_impact" name="no_purchase_impact" class="form-input form-textarea" rows="3" {% if req %}required{% endif %}>{{ po.no_purchase_impact or '' if po else '' }}</textarea>
+      </div>
+
+      <div class="form-field">
+        <label for="criticality" class="form-label">Is this keep-the-lights-on or nice to have? {% if req %}<span class="required">*</span>{% endif %}</label>
+        {% set current_crit = (po.criticality if po else None) or '' %}
+        <select id="criticality" name="criticality" class="form-input form-select" {% if req %}required{% endif %}>
+          <option value="" {% if not current_crit %}selected{% endif %}>Select…</option>
+          <option value="keep_the_lights_on" {% if current_crit == 'keep_the_lights_on' %}selected{% endif %}>Keep the lights on</option>
+          <option value="nice_to_have" {% if current_crit == 'nice_to_have' %}selected{% endif %}>Nice to have</option>
+        </select>
+      </div>
+
+      <div class="form-field form-field--full">
+        <label for="alternative_tool" class="form-label">Do we have another tool/service that does 70-80% of what this does? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="alternative_tool" name="alternative_tool" class="form-input form-textarea" rows="2" placeholder="Name the tool, or write &quot;No&quot;" {% if req %}required{% endif %}>{{ po.alternative_tool or '' if po else '' }}</textarea>
+      </div>
+
+      <div class="form-field form-field--full">
+        <label for="roi_benefit" class="form-label">What is the ROI or benefit of the services? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="roi_benefit" name="roi_benefit" class="form-input form-textarea" rows="3" {% if req %}required{% endif %}>{{ po.roi_benefit or '' if po else '' }}</textarea>
+      </div>
+
+      <div class="form-field form-field--full">
+        <label for="okr_alignment" class="form-label">What other OKRs of your team is the purchase tied to? {% if req %}<span class="required">*</span>{% endif %}</label>
+        <textarea id="okr_alignment" name="okr_alignment" class="form-input form-textarea" rows="2" {% if req %}required{% endif %}>{{ po.okr_alignment or '' if po else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2 class="form-section-title">Supporting Document</h2>
+    <div class="form-field">
+      <label for="document" class="form-label">Quote, proposal or contract (optional)</label>
+      <input type="file" id="document" name="document" class="form-input"
+             accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.doc,.docx,.xls,.xlsx" />
+      {% if po and po.document_name %}
+        <span class="text-muted">Currently attached: {{ po.document_name }}. Choosing a file replaces it.</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-card" id="line-items-card">
+    <div class="form-section-header">
+      <h2 class="form-section-title">Line Items</h2>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addLineItem()">+ Add Line Item</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table line-items-table" id="line-items-table">
+        <thead>
+          <tr>
+            <th style="width:50px;">#</th>
+            <th>Item Code</th>
+            <th>Description</th>
+            <th style="width:110px;">Quantity</th>
+            <th style="width:130px;">Unit Price</th>
+            <th style="width:130px;" class="text-right">Amount</th>
+            <th style="width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody id="line-items-body">
+          {% if line_items %}
+            {% for item in line_items %}
+            <tr class="line-item-row" data-index="{{ loop.index }}">
+              <td class="line-number-cell">{{ loop.index }}</td>
+              <td>
+                <input type="text" name="line_item_{{ loop.index }}_item_code" class="form-input form-input-sm" value="{{ item.item_code }}" placeholder="SKU-001" />
+              </td>
+              <td>
+                <input type="text" name="line_item_{{ loop.index }}_description" class="form-input form-input-sm" value="{{ item.description }}" placeholder="Item description" />
+              </td>
+              <td>
+                <input type="number" name="line_item_{{ loop.index }}_quantity" class="form-input form-input-sm line-qty" value="{{ item.quantity }}" min="0" step="any" oninput="recalcRow(this)" />
+              </td>
+              <td>
+                <input type="number" name="line_item_{{ loop.index }}_unit_price" class="form-input form-input-sm line-price" value="{{ item.unit_price }}" min="0" step="any" oninput="recalcRow(this)" />
+              </td>
+              <td class="text-right line-amount-cell">
+                {{ "%.2f"|format(item.amount or 0) }}
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn-remove-row" onclick="removeLineItem(this)" title="Remove">&#10005;</button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr class="line-item-row" data-index="1">
+              <td class="line-number-cell">1</td>
+              <td><input type="text" name="line_item_1_item_code" class="form-input form-input-sm" placeholder="SKU-001" /></td>
+              <td><input type="text" name="line_item_1_description" class="form-input form-input-sm" placeholder="Item description" /></td>
+              <td><input type="number" name="line_item_1_quantity" class="form-input form-input-sm line-qty" min="0" step="any" value="" oninput="recalcRow(this)" /></td>
+              <td><input type="number" name="line_item_1_unit_price" class="form-input form-input-sm line-price" min="0" step="any" value="" oninput="recalcRow(this)" /></td>
+              <td class="text-right line-amount-cell">0.00</td>
+              <td class="text-center">
+                <button type="button" class="btn-remove-row" onclick="removeLineItem(this)" title="Remove">&#10005;</button>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="5" class="text-right"><strong>Total</strong></td>
+            <td class="text-right font-mono" id="form-total">0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    {% if mode == 'edit' %}
+      <a href="/po/{{ po.po_number }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    {% else %}
+      <a href="/" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

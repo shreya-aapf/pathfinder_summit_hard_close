@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Flux Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Flux Analysis</h1>
+    <p class="page-subtitle">Actuals vs. prior quarter and budget, by category and subsidiary</p>
+  </div>
+</div>
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Subsidiary</th>
+        <th>Period</th>
+        <th>Actual</th>
+        <th>Prior Quarter</th>
+        <th>Budget</th>
+        <th>Var. vs Prior</th>
+        <th>Var. vs Budget</th>
+        <th>Explanation</th>
+        <th>Linked Reference</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="{% if row.status == 'unexplained' %}row--escalated{% endif %}">
+        <td>{{ row.category }}</td>
+        <td>{{ row.subsidiary or '—' }}</td>
+        <td class="cell-mono">{{ row.period }}</td>
+        <td class="cell-amount">${{ "%.2f"|format(row.actual) }}</td>
+        <td class="cell-amount">{{ "$%.2f"|format(row.prior_quarter) if row.prior_quarter is not none else '—' }}</td>
+        <td class="cell-amount">{{ "$%.2f"|format(row.budget) if row.budget is not none else '—' }}</td>
+        <td>
+          {% if row.variance_vs_prior_pct is not none %}
+            {% set vp = row.variance_vs_prior_pct | float %}
+            <span class="variance-pct {% if vp|abs > 10 %}variance-pct--high{% else %}variance-pct--low{% endif %}">
+              {{ "%.2f"|format(vp) }}%
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if row.variance_vs_budget_pct is not none %}
+            {% set vb = row.variance_vs_budget_pct | float %}
+            <span class="variance-pct {% if vb|abs > 10 %}variance-pct--high{% else %}variance-pct--low{% endif %}">
+              {{ "%.2f"|format(vb) }}%
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if row.explanation %}
+            <span class="explanation-text">{{ row.explanation }}</span>
+          {% else %}
+            <span class="unexplained-flag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Unexplained
+            </span>
+          {% endif %}
+        </td>
+        <td class="cell-mono">
+          {% if row.linked_reference %}
+            {% if row.linked_reference.startswith('INV-') %}
+              <a href="{{ CLEARLEDGER_URL }}/invoices/lookup/{{ row.linked_reference }}" target="_blank" rel="noopener" class="ref-tag">{{ row.linked_reference }} ↗</a>
+            {% else %}
+              <span class="ref-tag">{{ row.linked_reference }}</span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No flux analysis rows found</p>
+  <p class="empty-state-sub">No variance analysis has been recorded yet.</p>
+</div>
+{% endif %}
+{% endblock %}

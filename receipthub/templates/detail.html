@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ gr.gr_number }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('index') }}" class="breadcrumb-link">← All Receipts</a>
+</div>
+
+<div class="detail-header">
+  <div class="detail-header-left">
+    <h1 class="detail-gr-number">{{ gr.gr_number }}</h1>
+    <div class="detail-po-row">
+      <span class="detail-po-label">PO</span>
+      <span class="detail-po-number">{{ gr.po_number }}</span>
+    </div>
+  </div>
+  <div class="detail-header-right">
+    <span class="badge badge-{{ gr.status }} badge-lg">{{ gr.status|capitalize }}</span>
+    <div class="detail-actions">
+      <a href="{{ PROCUREOS_URL }}/po/{{ gr.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View PO in ProcureOS ↗</a>
+      <a href="{{ CLEARLEDGER_URL }}/?po_number={{ gr.po_number }}" target="_blank" rel="noopener" class="btn btn-secondary">View invoices in ClearLedger ↗</a>
+      <a href="{{ url_for('gr_edit', gr_number=gr.gr_number) }}" class="btn btn-secondary">Edit</a>
+      <button class="btn btn-danger" onclick="openDeleteModal('{{ gr.gr_number }}')">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="detail-meta-grid">
+  <div class="meta-card">
+    <span class="meta-label">Vendor</span>
+    <span class="meta-value">{{ gr.vendor_name }}</span>
+    <span class="meta-sub">{{ gr.vendor_id }}</span>
+  </div>
+  <div class="meta-card">
+    <span class="meta-label">Received Date</span>
+    <span class="meta-value">{{ gr.received_date }}</span>
+  </div>
+  <div class="meta-card">
+    <span class="meta-label">Received By</span>
+    <span class="meta-value">{{ gr.received_by }}</span>
+  </div>
+  <div class="meta-card">
+    <span class="meta-label">Line Items</span>
+    <span class="meta-value">{{ gr.line_items|length }}</span>
+  </div>
+</div>
+
+<section class="section">
+  <h2 class="section-title">Line Items</h2>
+  {% if gr.line_items %}
+  <div class="table-wrap">
+    <table class="data-table line-items-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Item Code</th>
+          <th>Description</th>
+          <th class="num">Ordered Qty</th>
+          <th class="num">Received Qty</th>
+          <th class="num">Variance</th>
+          <th class="num">Unit Price</th>
+          <th>Condition</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for li in gr.line_items %}
+        {% set variance = (li.quantity_ordered or 0) - (li.quantity_received or 0) %}
+        {% set row_class = '' %}
+        {% if li.condition in ('damaged', 'rejected') %}
+          {% set row_class = 'row-danger' %}
+        {% elif variance > 0 %}
+          {% set row_class = 'row-warning' %}
+        {% endif %}
+        <tr class="{{ row_class }}">
+          <td>{{ li.line_number }}</td>
+          <td class="mono">{{ li.item_code }}</td>
+          <td>{{ li.description }}</td>
+          <td class="num">{{ li.quantity_ordered }}</td>
+          <td class="num">
+            {{ li.quantity_received }}
+            {% if variance > 0 %}<span class="variance-dot" title="Short delivery"></span>{% endif %}
+          </td>
+          <td class="num">
+            {% if variance > 0 %}
+              <span class="variance-neg">−{{ variance }}</span>
+            {% elif variance < 0 %}
+              <span class="variance-pos">+{{ variance|abs }}</span>
+            {% else %}
+              <span class="variance-zero">—</span>
+            {% endif %}
+          </td>
+          <td class="num">{{ "%.2f"|format(li.unit_price) if li.unit_price else '—' }}</td>
+          <td><span class="condition-badge condition-{{ li.condition }}">{{ li.condition|capitalize }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-inline">No line items recorded.</p>
+  {% endif %}
+</section>
+
+<!-- Delete modal -->
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3 class="modal-title">Delete Receipt?</h3>
+    <p class="modal-body">This will permanently delete <strong id="deleteGrLabel"></strong> and all its line items. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <form id="deleteForm" method="post">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

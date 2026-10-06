@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Balance Sheet{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Balance Sheet</h1>
+    <p class="page-subtitle">GL account balances vs. sub-ledger, by subsidiary</p>
+  </div>
+</div>
+
+<!-- Subsidiary filter tabs -->
+<div class="filter-tabs">
+  {% set tabs = [('all', 'All'), ('A', 'Subsidiary A'), ('B', 'Subsidiary B'), ('C', 'Subsidiary C')] %}
+  {% for value, label in tabs %}
+    <a href="?subsidiary={{ value }}"
+       class="filter-tab {% if subsidiary_filter == value %}filter-tab--active{% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Sub</th>
+        <th>Account Code</th>
+        <th>Account Name</th>
+        <th>Type</th>
+        <th>Period</th>
+        <th>GL Balance</th>
+        <th>Subledger Balance</th>
+        <th>Variance</th>
+        <th>Source Doc Ref</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      {% set acc = row.account %}
+      {% set bal = row.balance %}
+      <tr class="{% if bal and bal.status == 'variance' %}row--variance{% endif %}">
+        <td><span class="sub-chip">{{ acc.subsidiary }}</span></td>
+        <td class="cell-mono">{{ acc.account_code }}</td>
+        <td>
+          <div class="account-name">{{ acc.account_name }}</div>
+        </td>
+        <td><span class="badge badge--gray">{{ acc.account_type }}</span></td>
+        <td class="cell-mono">{{ bal.period if bal else '—' }}</td>
+        <td class="cell-amount">
+          {% if bal %}{{ "%.2f"|format(bal.gl_balance) }}{% else %}—{% endif %}
+        </td>
+        <td class="cell-amount">
+          {% if bal and bal.subledger_balance is not none %}{{ "%.2f"|format(bal.subledger_balance) }}{% else %}—{% endif %}
+        </td>
+        <td class="cell-amount">
+          {% if bal and bal.status == 'variance' %}
+            <span class="num-unfavorable">{{ "%.2f"|format(bal.variance_amount) }}</span>
+          {% elif bal %}
+            <span class="num-favorable">0.00</span>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td class="cell-mono">
+          {% if bal and bal.status == 'variance' and bal.source_doc_ref %}
+            {{ bal.source_doc_ref }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <line x1="3" y1="9" x2="21" y2="9"/>
+      <line x1="9" y1="9" x2="9" y2="21"/>
+    </svg>
+  </div>
+  <p class="empty-state-title">No GL accounts found</p>
+  <p class="empty-state-sub">
+    {% if subsidiary_filter and subsidiary_filter != 'all' %}
+      No accounts for Subsidiary {{ subsidiary_filter }}. <a href="/" class="link-plain">View all subsidiaries</a>
+    {% else %}
+      No accounts have been loaded into the ledger yet.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

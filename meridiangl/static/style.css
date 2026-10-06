@@ -1,0 +1,483 @@
+/* ================================================================
+   MeridianGL — GL Balance Sheet Viewer
+   Serious, dense, conservative. This is where the close lives.
+   ================================================================ */
+
+:root {
+  --charcoal:      #1C2128;
+  --charcoal-dark: #12151A;
+  --charcoal-light:#2B323C;
+  --accent:        #0D9488;
+  --accent-light:  #14B8A6;
+  --accent-dark:   #0F766E;
+  --red:           #DC2626;
+  --red-light:     #FEE2E2;
+  --amber:         #B45309;
+  --amber-bg:      #FEF3C7;
+  --green:         #15803D;
+  --green-bg:      #DCFCE7;
+  --slate:         #475569;
+  --gray:          #64748B;
+  --gray-bg:       #F1F5F9;
+  --white:         #FFFFFF;
+  --surface:       #F4F5F7;
+  --border:        #DDE1E6;
+  --text:          #1A202C;
+  --text-muted:    #5B6470;
+  --sidebar-w:     220px;
+  --radius:        5px;
+  --shadow:        0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:     0 4px 6px -1px rgba(0,0,0,.10), 0 2px 4px -1px rgba(0,0,0,.06);
+  --mono:          'SF Mono', ui-monospace, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--surface);
+  line-height: 1.45;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ----------------------------------------------------------------
+   Layout
+   ---------------------------------------------------------------- */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ----------------------------------------------------------------
+   Sidebar
+   ---------------------------------------------------------------- */
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--charcoal);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+
+.logo-icon {
+  color: var(--accent-light);
+  font-size: 18px;
+  line-height: 1;
+  font-family: var(--mono);
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 16.5px;
+  color: var(--white);
+  letter-spacing: -.3px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  flex: 1;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  color: rgba(255,255,255,.65);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,.07);
+  color: var(--white);
+}
+
+.nav-link.active {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.nav-link.active svg {
+  stroke: var(--white);
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.sidebar-footer-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.38);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+
+.sidebar-footer-sub {
+  display: block;
+  font-size: 11px;
+  color: rgba(255,255,255,.28);
+  margin-top: 2px;
+}
+
+/* ----------------------------------------------------------------
+   Main content
+   ---------------------------------------------------------------- */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 30px 34px;
+  overflow-y: auto;
+}
+
+/* ----------------------------------------------------------------
+   Flash messages
+   ---------------------------------------------------------------- */
+
+.flash-container {
+  margin-bottom: 18px;
+}
+
+.flash {
+  padding: 11px 15px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.flash--success { background: var(--green-bg); color: var(--green); border: 1px solid #86efac; }
+.flash--error   { background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; }
+
+/* ----------------------------------------------------------------
+   Page header
+   ---------------------------------------------------------------- */
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.3px;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* ----------------------------------------------------------------
+   Filter tabs
+   ---------------------------------------------------------------- */
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 18px;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+  cursor: pointer;
+}
+
+.filter-tab:hover {
+  color: var(--text);
+}
+
+.filter-tab--active {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+}
+
+.tab-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--gray-bg);
+  color: var(--gray);
+}
+
+/* ----------------------------------------------------------------
+   Table — dense, ledger-style
+   ---------------------------------------------------------------- */
+
+.table-wrap {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: #f7f8f9;
+}
+
+.data-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+/* Variance rows stand out — subtle red wash, left border */
+.data-table tr.row--variance {
+  background: #FEF6F5;
+}
+
+.data-table tr.row--variance:hover {
+  background: #FCEAE8;
+}
+
+.data-table tr.row--variance td:first-child {
+  border-left: 3px solid var(--red);
+}
+
+.data-table tr.row--blocked {
+  background: #FEF6F5;
+}
+
+.data-table tr.row--blocked td:first-child {
+  border-left: 3px solid var(--red);
+}
+
+.data-table tr.row--flagged td:first-child {
+  border-left: 3px solid var(--amber);
+}
+
+.data-table tr.row--matched td:first-child,
+.data-table tr.row--within_tolerance td:first-child {
+  border-left: 3px solid transparent;
+}
+
+.cell-mono   { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.cell-amount { font-family: var(--mono); font-weight: 600; text-align: right; }
+.cell-date   { color: var(--text-muted); white-space: nowrap; font-family: var(--mono); font-size: 12px; }
+.cell-num    { font-family: var(--mono); text-align: right; }
+.cell-center { text-align: center; }
+
+/* Financial directionality — never generic gray for numbers */
+.num-favorable   { color: var(--green); font-weight: 600; }
+.num-unfavorable { color: var(--red); font-weight: 600; }
+.num-neutral     { color: var(--text); font-weight: 600; }
+
+.account-name { font-weight: 500; }
+.account-sub  { font-size: 11.5px; color: var(--text-muted); }
+
+.link-plain { color: var(--accent-dark); font-weight: 600; }
+.link-plain:hover { text-decoration: underline; }
+
+/* ----------------------------------------------------------------
+   Badges
+   ---------------------------------------------------------------- */
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--amber  { background: var(--amber-bg);  color: var(--amber); }
+.badge--green  { background: var(--green-bg);  color: var(--green); }
+.badge--red    { background: var(--red-light); color: var(--red); }
+.badge--gray   { background: var(--gray-bg);   color: var(--gray); }
+.badge--accent { background: #CCFBF1;          color: var(--accent-dark); }
+
+/* Subsidiary chip */
+.sub-chip {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--charcoal-light);
+  color: var(--white);
+}
+
+/* ----------------------------------------------------------------
+   Empty state
+   ---------------------------------------------------------------- */
+
+.empty-state {
+  text-align: center;
+  padding: 56px 32px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.empty-state-icon {
+  color: var(--border);
+  margin-bottom: 14px;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.empty-state-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ----------------------------------------------------------------
+   Section
+   ---------------------------------------------------------------- */
+
+.section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ----------------------------------------------------------------
+   Info note
+   ---------------------------------------------------------------- */
+
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 14px;
+  background: var(--gray-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+
+.info-note svg { flex-shrink: 0; margin-top: 1px; }
+
+.info-note code {
+  background: rgba(0,0,0,.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+}
+
+/* ----------------------------------------------------------------
+   Toast (unused by default — kept for consistency with sibling apps)
+   ---------------------------------------------------------------- */
+
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 380px;
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  animation: slideUp .2s ease-out;
+}
+
+.toast--success { background: var(--charcoal); color: var(--white); }
+.toast--error   { background: var(--red);      color: var(--white); }
+.toast--info    { background: var(--charcoal); color: var(--white); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ----------------------------------------------------------------
+   Utility
+   ---------------------------------------------------------------- */
+
+.text-muted { color: var(--text-muted); font-size: 13px; }

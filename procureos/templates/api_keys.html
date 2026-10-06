@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">API Keys</h1>
+    <p class="page-subtitle">
+      Keys authenticate requests to <code>/api/*</code> endpoints via the
+      <code>X-API-Key</code> header. A key is shown only once — copy it immediately.
+    </p>
+  </div>
+</div>
+
+{% if new_key %}
+<div class="card" style="border-left: 3px solid #16a34a; margin-bottom: 1.5rem;">
+  <h2 class="card-title" style="color: #16a34a;">New key created — copy it now</h2>
+  <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.75rem;">This value will not be shown again.</p>
+  <div style="display:flex; align-items:center; gap:0.75rem;">
+    <code style="font-size:0.85rem; background:#f1f5f9; padding:0.5rem 0.75rem; border-radius:6px; flex:1; word-break:break-all;">{{ new_key }}</code>
+    <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('{{ new_key }}').then(()=>this.textContent='Copied!')">Copy</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="card" style="margin-bottom: 1.5rem;">
+  <h2 class="card-title">Generate a new key</h2>
+  <form method="post" action="/settings/api-keys" style="display:flex; gap:0.75rem; align-items:flex-end; margin-top:0.75rem;">
+    <div style="flex:1;">
+      <label class="form-label" for="key-label">Label</label>
+      <input type="text" id="key-label" name="label" class="form-input" placeholder="e.g. AA Bot, Postman test" maxlength="100" />
+    </div>
+    <button type="submit" class="btn btn-primary">Generate</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2 class="card-title">Active keys</h2>
+  {% if keys %}
+  <table style="width:100%; border-collapse:collapse; margin-top:0.75rem; font-size:0.875rem;">
+    <thead>
+      <tr style="border-bottom:1px solid #e2e8f0; text-align:left;">
+        <th style="padding:0.5rem 0.75rem; color:#64748b; font-weight:500;">Label</th>
+        <th style="padding:0.5rem 0.75rem; color:#64748b; font-weight:500;">Created</th>
+        <th style="padding:0.5rem 0.75rem;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for k in keys %}
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:0.6rem 0.75rem;">{{ k.label or '—' }}</td>
+        <td style="padding:0.6rem 0.75rem; color:#64748b;">{{ k.created_at[:10] if k.created_at else '—' }}</td>
+        <td style="padding:0.6rem 0.75rem; text-align:right;">
+          <form method="post" action="/settings/api-keys/{{ k.id }}/revoke"
+                onsubmit="return confirm('Revoke this key? Any automation using it will stop working immediately.')">
+            <button type="submit" class="btn btn-secondary btn-sm" style="color:#dc2626;">Revoke</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#64748b; margin-top:0.5rem; font-size:0.875rem;">No keys yet. The demo key (<code>demo-key-procureos</code>) always works.</p>
+  {% endif %}
+</div>
+{% endblock %}
