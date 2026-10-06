@@ -234,7 +234,7 @@ curl -X PUT http://localhost:5001/api/settings/threshold \
 
 ### POST /api/invoices/{id}/document
 
-Attaches (or replaces) the invoice file. Sent as `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff. Maximum 10 MB. Files are stored in the private Supabase Storage bucket `documents` under `invoices/{invoice_number}/`. Replacing a document deletes the previous file. Fires an `invoice.updated` webhook.
+Attaches (or replaces) the invoice file. Sent as `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff. Maximum 4 MB. Files are stored in the private Supabase Storage bucket `documents` under `invoices/{invoice_number}/`. Replacing a document deletes the previous file. Fires an `invoice.updated` webhook.
 
 ```bash
 curl -X POST http://localhost:5001/api/invoices/{id}/document -F "file=@invoice.pdf"
@@ -416,7 +416,7 @@ The web form at `/po/new` requires all seven answers. The API leaves them option
 
 ### POST /api/pos/{po_number}/document
 
-Requires `X-API-Key`. Attaches (or replaces) a supporting file such as a quote or contract. `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff, doc, docx, xls, xlsx. Maximum 10 MB. Stored under `purchase-orders/{po_number}/` in the `documents` bucket. Response `201`: `{ "po_number": "...", "document_name": "...", "document_path": "..." }`.
+Requires `X-API-Key`. Attaches (or replaces) a supporting file such as a quote or contract. `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff, doc, docx, xls, xlsx. Maximum 4 MB. Stored under `purchase-orders/{po_number}/` in the `documents` bucket. Response `201`: `{ "po_number": "...", "document_name": "...", "document_path": "..." }`.
 
 ### GET /api/pos/{po_number}/document
 
@@ -827,7 +827,7 @@ Headers: `Content-Type: application/json`, `X-Webhook-Event: <event>`, and the s
 
 For `invoice.*` events, `data` is the full invoice row. Action events add `action` and `note` to it. For `goods_receipt.*` events, `data` has the same shape as `GET /api/gr/{gr_number}`.
 
-Delivery is a single attempt with a 5 second timeout, sent from a background thread. A failure is logged and never affects the API response, so there are no retries. Deletes do not send an event.
+Delivery is a single attempt with a 3 second timeout, sent inline before the API response returns (serverless hosts can freeze background threads). A failure is logged and never affects the API response, so there are no retries. Deletes do not send an event.
 
 ---
 

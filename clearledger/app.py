@@ -3,7 +3,6 @@ import hmac
 import json
 import os
 import secrets
-import threading
 import urllib.request
 import uuid
 from datetime import datetime, timezone
@@ -15,9 +14,9 @@ from werkzeug.utils import secure_filename
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public/static', static_url_path='/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB upload cap
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB upload cap (Vercel rejects request bodies over 4.5 MB)
 
 supabase: Client = create_client(
     os.environ['SUPABASE_URL'],
@@ -83,8 +82,8 @@ def require_api_key(f):
 
 
 def send_webhook(event, data):
-    """Fire-and-forget POST to WEBHOOK_URL. Runs in a thread so a slow or
-    unreachable receiver never delays the request that triggered it."""
+    """Best-effort POST to WEBHOOK_URL. Sent inline (short timeout) because a
+    serverless host can freeze a background thread once the response returns."""
     if not WEBHOOK_URL:
         return
     payload_data = dict(data)
@@ -106,14 +105,11 @@ def send_webhook(event, data):
         digest = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
         headers['X-Webhook-Signature'] = f'sha256={digest}'
 
-    def _send():
-        try:
-            req = urllib.request.Request(WEBHOOK_URL, data=body, headers=headers, method='POST')
-            urllib.request.urlopen(req, timeout=5).close()
-        except Exception as e:
-            app.logger.warning('Webhook %s to %s failed: %s', event, WEBHOOK_URL, e)
-
-    threading.Thread(target=_send, daemon=True).start()
+    try:
+        req = urllib.request.Request(WEBHOOK_URL, data=body, headers=headers, method='POST')
+        urllib.request.urlopen(req, timeout=3).close()
+    except Exception as e:
+        app.logger.warning('Webhook %s to %s failed: %s', event, WEBHOOK_URL, e)
 
 
 def upload_document(file_storage, folder):

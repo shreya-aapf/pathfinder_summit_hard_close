@@ -12,9 +12,9 @@ from werkzeug.utils import secure_filename
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public/static', static_url_path='/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB upload cap
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB upload cap (Vercel rejects request bodies over 4.5 MB)
 
 supabase: Client = create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_KEY'])
 

@@ -3,7 +3,6 @@ import json
 import os
 import hashlib
 import secrets
-import threading
 import urllib.request
 from functools import wraps
 from datetime import date, datetime, timezone
@@ -14,7 +13,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public/static', static_url_path='/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
 
 supabase: Client = create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_KEY'])
@@ -36,8 +35,8 @@ WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '')
 
 
 def send_webhook(event, data):
-    """Fire-and-forget POST to WEBHOOK_URL. Runs in a thread so a slow or
-    unreachable receiver never delays the request that triggered it."""
+    """Best-effort POST to WEBHOOK_URL. Sent inline (short timeout) because a
+    serverless host can freeze a background thread once the response returns."""
     if not WEBHOOK_URL:
         return
     body = json.dumps({
@@ -51,14 +50,11 @@ def send_webhook(event, data):
         digest = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
         headers['X-Webhook-Signature'] = f'sha256={digest}'
 
-    def _send():
-        try:
-            req = urllib.request.Request(WEBHOOK_URL, data=body, headers=headers, method='POST')
-            urllib.request.urlopen(req, timeout=5).close()
-        except Exception as e:
-            app.logger.warning('Webhook %s to %s failed: %s', event, WEBHOOK_URL, e)
-
-    threading.Thread(target=_send, daemon=True).start()
+    try:
+        req = urllib.request.Request(WEBHOOK_URL, data=body, headers=headers, method='POST')
+        urllib.request.urlopen(req, timeout=3).close()
+    except Exception as e:
+        app.logger.warning('Webhook %s to %s failed: %s', event, WEBHOOK_URL, e)
 
 
 DEMO_KEY_HASH = 'f455355415937c4bb9db319ccef142b3d9b707a754ad93f30983c77538e84cf2'
