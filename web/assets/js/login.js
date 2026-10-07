@@ -1,6 +1,8 @@
 import { api } from './api.js';
 import { getSession, safeNext, saveSession } from './auth.js';
 import { consumeFlash, param, showFlash } from './ui.js';
+import { url } from './site.js';
+import { wirePasswordToggle } from './password-toggle.js';
 
 const next = safeNext(param('next'));
 if (getSession()) location.replace(next);
@@ -8,6 +10,12 @@ if (getSession()) location.replace(next);
 const flash = document.getElementById('flash');
 const pending = consumeFlash();
 if (pending) showFlash(flash, pending.message, pending.category);
+
+wirePasswordToggle(document.getElementById('show-password'), [document.getElementById('password')]);
+
+if (param('next')) {
+  document.getElementById('register-link').href = url(`register.html?next=${encodeURIComponent(param('next'))}`);
+}
 
 document.getElementById('login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
