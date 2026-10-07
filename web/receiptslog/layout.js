@@ -3,28 +3,28 @@ import { consumeFlash, esc } from '/assets/js/ui.js';
 
 const LINK_STYLE = 'background:none;border:0;cursor:pointer;font-family:inherit;';
 
-// Renders the ReceiptHub chrome into #root and returns the element pages render into.
+// Renders the ReceiptsLog chrome into #root and returns the element pages render into.
 export function mountLayout(active, title) {
   const session = requireLogin();
   document.title = title;
   document.getElementById('root').innerHTML = `
     <header class="topnav">
       <div class="topnav-inner">
-        <a href="/receipthub/" class="topnav-logo">
+        <a href="/receiptslog/" class="topnav-logo">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <rect x="2" y="5" width="16" height="12" rx="1.5" stroke="#E8601C" stroke-width="1.8"/>
             <path d="M6 5V4a4 4 0 0 1 8 0v1" stroke="#E8601C" stroke-width="1.8" stroke-linecap="round"/>
             <path d="M7 10h6M7 13h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          ReceiptHub
+          ReceiptsLog
         </a>
         <nav class="topnav-links">
-          <a href="/receipthub/" class="topnav-link ${active === 'receipts' ? 'active' : ''}">Receipts</a>
-          <a href="/receipthub/api-keys.html" class="topnav-link ${active === 'keys' ? 'active' : ''}">API Keys</a>
+          <a href="/receiptslog/" class="topnav-link ${active === 'receipts' ? 'active' : ''}">Receipts</a>
+          <a href="/receiptslog/api-keys.html" class="topnav-link ${active === 'keys' ? 'active' : ''}">API Keys</a>
           <a href="/" class="topnav-link">All apps</a>
         </nav>
         <div class="topnav-actions" style="display:flex;align-items:center;gap:12px;">
-          <a href="/receipthub/form.html" class="btn btn-primary btn-sm">+ New Receipt</a>
+          <a href="/receiptslog/form.html" class="btn btn-primary btn-sm">+ New Receipt</a>
           <button type="button" class="topnav-link" style="${LINK_STYLE}" id="signout">Sign out (${esc(session.username)})</button>
         </div>
       </div>

@@ -25,9 +25,9 @@ export function wireDeleteModal() {
       const number = target;
       close();
       try {
-        await api('receipthub', `/api/grs/${encodeURIComponent(number)}`, { method: 'DELETE' });
+        await api('receiptslog', `/api/grs/${encodeURIComponent(number)}`, { method: 'DELETE' });
         flashNext(`GR ${number} deleted.`, 'success');
-        location.href = '/receipthub/';
+        location.href = '/receiptslog/';
       } catch (err) {
         flash(`Error deleting GR: ${err.message}`, 'error');
       }

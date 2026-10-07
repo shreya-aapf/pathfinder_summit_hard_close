@@ -113,7 +113,7 @@ function render(inv) {
               <span><strong>Vendor:</strong> ${esc(inv.vendor_name)} (${esc(inv.vendor_id)})</span>
               <span><strong>Date:</strong> ${esc(inv.invoice_date ?? '')}</span>
               <span><strong>PO:</strong> <a href="/procureos/po.html?n=${po}" target="_blank" rel="noopener" class="link-plain">${esc(inv.po_number)} ↗</a></span>
-              ${inv.gr_number ? `<span><strong>GR:</strong> <a href="/receipthub/gr.html?n=${encodeURIComponent(inv.gr_number)}" target="_blank" rel="noopener" class="link-plain">${esc(inv.gr_number)} ↗</a></span>` : ''}
+              ${inv.gr_number ? `<span><strong>GR:</strong> <a href="/receiptslog/gr.html?n=${encodeURIComponent(inv.gr_number)}" target="_blank" rel="noopener" class="link-plain">${esc(inv.gr_number)} ↗</a></span>` : ''}
             </div>
           </div>
           <div class="detail-header-right">

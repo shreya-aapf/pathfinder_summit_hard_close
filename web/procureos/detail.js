@@ -29,7 +29,7 @@ function render(po) {
       </div>
       <div class="header-actions">
         <a href="/clearledger/?po_number=${n}" target="_blank" rel="noopener" class="btn btn-secondary">View in ClearLedger ↗</a>
-        <a href="/receipthub/?search=${n}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptHub ↗</a>
+        <a href="/receiptslog/?search=${n}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptsLog ↗</a>
         <a href="/procureos/form.html?n=${n}" class="btn btn-secondary">Edit</a>
         <button type="button" class="btn btn-danger" id="delete-open">Delete</button>
       </div>

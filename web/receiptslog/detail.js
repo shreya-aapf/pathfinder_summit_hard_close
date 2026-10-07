@@ -4,7 +4,7 @@ import { DELETE_MODAL, capitalize, mountLayout } from './layout.js';
 import { wireDeleteModal } from './delete-modal.js';
 
 const number = param('n');
-const view = mountLayout('receipts', `${number || 'Receipt'} — ReceiptHub`);
+const view = mountLayout('receipts', `${number || 'Receipt'} — ReceiptsLog`);
 
 const price = (v) => (v ? Number(v).toFixed(2) : '—');
 
@@ -40,10 +40,10 @@ function render(gr) {
   const n = encodeURIComponent(gr.gr_number);
   const po = encodeURIComponent(gr.po_number);
   const lines = gr.line_items || [];
-  document.title = `${gr.gr_number} — ReceiptHub`;
+  document.title = `${gr.gr_number} — ReceiptsLog`;
 
   view.innerHTML = `
-    <div class="breadcrumb"><a href="/receipthub/" class="breadcrumb-link">← All Receipts</a></div>
+    <div class="breadcrumb"><a href="/receiptslog/" class="breadcrumb-link">← All Receipts</a></div>
 
     <div class="detail-header">
       <div class="detail-header-left">
@@ -58,7 +58,7 @@ function render(gr) {
         <div class="detail-actions">
           <a href="/procureos/po.html?n=${po}" target="_blank" rel="noopener" class="btn btn-secondary">View PO in ProcureOS ↗</a>
           <a href="/clearledger/?po_number=${po}" target="_blank" rel="noopener" class="btn btn-secondary">View invoices in ClearLedger ↗</a>
-          <a href="/receipthub/form.html?n=${n}" class="btn btn-secondary">Edit</a>
+          <a href="/receiptslog/form.html?n=${n}" class="btn btn-secondary">Edit</a>
           <button type="button" class="btn btn-danger" data-delete="${esc(gr.gr_number)}">Delete</button>
         </div>
       </div>
@@ -94,13 +94,13 @@ function render(gr) {
 }
 
 if (!number) {
-  location.replace('/receipthub/');
+  location.replace('/receiptslog/');
 } else {
   try {
-    render(await api('receipthub', `/api/gr/${encodeURIComponent(number)}`));
+    render(await api('receiptslog', `/api/gr/${encodeURIComponent(number)}`));
   } catch (e) {
     view.innerHTML = `
-      <div class="breadcrumb"><a href="/receipthub/" class="breadcrumb-link">← All Receipts</a></div>
+      <div class="breadcrumb"><a href="/receiptslog/" class="breadcrumb-link">← All Receipts</a></div>
       <h1 class="page-title">Not found</h1>
       <div class="empty-state"><p>${e.status === 404 ? `Receipt ${esc(number)} was not found.` : esc(e.message)}</p></div>`;
   }

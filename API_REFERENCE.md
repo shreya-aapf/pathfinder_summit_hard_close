@@ -1,12 +1,12 @@
 # API Reference — Pathfinder Summit Systems
 
-Five standalone systems. The automation workflow interacts with all of them depending on the challenge tier (Easy: ClearLedger/ProcureOS/ReceiptHub; Medium: + MeridianGL; Hard: + AuditTrail).
+Five standalone systems. The automation workflow interacts with all of them depending on the challenge tier (Easy: ClearLedger/ProcureOS/ReceiptsLog; Medium: + MeridianGL; Hard: + AuditTrail).
 
 | System | Base URL | Auth |
 |---|---|---|
 | ClearLedger (Invoice Review) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger` | `X-API-Key` header on `/api/*` |
 | ProcureOS (PO System) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos` | `X-API-Key` header |
-| ReceiptHub (GR System) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub` | `X-API-Key` header |
+| ReceiptsLog (GR System) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog` | `X-API-Key` header |
 | MeridianGL (GL Balance Sheet Viewer) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl` | `X-API-Key` header |
 | AuditTrail (Fraud Flag + Close Status) | `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail` | None |
 
@@ -14,11 +14,11 @@ Every system is a Supabase Edge Function. Endpoint paths in this document are re
 
 **Demo API keys**
 - ProcureOS: `demo-key-procureos`
-- ReceiptHub: `demo-key-receipthub`
+- ReceiptsLog: `demo-key-receipthub`
 - MeridianGL: `demo-key-meridiangl`
 - ClearLedger: `demo-key-clearledger`
 
-**Web UI.** The pages are a static site (the `web/` folder) that calls these functions from the browser. Sign in at `/login.html` (create an account at `/register.html`); one login covers every app, and the pages send it as a bearer token. API keys for ClearLedger, ProcureOS and ReceiptHub are managed on each app's API Keys page. Webhooks are configured with Supabase secrets: `supabase secrets set WEBHOOK_URL=... WEBHOOK_SECRET=...`.
+**Web UI.** The pages are a static site (the `web/` folder) that calls these functions from the browser. Sign in at `/login.html` (create an account at `/register.html`); one login covers every app, and the pages send it as a bearer token. API keys for ClearLedger, ProcureOS and ReceiptsLog are managed on each app's API Keys page. Webhooks are configured with Supabase secrets: `supabase secrets set WEBHOOK_URL=... WEBHOOK_SECRET=...`.
 
 ---
 
@@ -429,7 +429,7 @@ Requires `X-API-Key`. Returns `{ "document_name": "...", "url": "<signed URL>", 
 
 ---
 
-## ReceiptHub — Goods Received System
+## ReceiptsLog — Goods Received System
 
 Holds GR (goods received) records. The automation queries this to retrieve delivery data for matching. A single PO may have multiple GR records (split/partial deliveries).
 
@@ -473,7 +473,7 @@ Holds GR (goods received) records. The automation queries this to retrieve deliv
 | 403 | Invalid API key |
 
 ```bash
-curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/by-po/PO-2024-0099 \
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/by-po/PO-2024-0099 \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -490,7 +490,7 @@ Get a single GR record by GR number.
 | 404 | Not found |
 
 ```bash
-curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/GR-2024-0044 \
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/GR-2024-0044 \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -519,7 +519,7 @@ List GR records with optional filters.
 ```
 
 ```bash
-curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/grs?po_number=PO-2024-0099" \
+curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/grs?po_number=PO-2024-0099" \
   -H "X-API-Key: demo-key-receipthub"
 ```
 
@@ -587,7 +587,7 @@ Delete a GR record and all its line items.
 
 ## MeridianGL — GL Balance Sheet Viewer (Medium tier)
 
-Read-only viewer over GL close data for three subsidiaries (`A`, `B`, `C`). No matching/automation logic lives here — the automation reads from it the same way it reads from ProcureOS and ReceiptHub.
+Read-only viewer over GL close data for three subsidiaries (`A`, `B`, `C`). No matching/automation logic lives here — the automation reads from it the same way it reads from ProcureOS and ReceiptsLog.
 
 **Authentication:** All `/api/*` routes require `X-API-Key: demo-key-meridiangl` header.
 
@@ -805,7 +805,7 @@ curl -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/a
 
 ## Webhooks — Invoice and Goods Receipt Changes
 
-ClearLedger and ReceiptHub send an HTTP `POST` to `WEBHOOK_URL` each time an invoice or goods receipt is created or updated. Set the variables in the app's environment before starting it. If `WEBHOOK_URL` is empty, nothing is sent.
+ClearLedger and ReceiptsLog send an HTTP `POST` to `WEBHOOK_URL` each time an invoice or goods receipt is created or updated. Set the variables in the app's environment before starting it. If `WEBHOOK_URL` is empty, nothing is sent.
 
 | Variable | Purpose |
 |----------|---------|
@@ -816,15 +816,15 @@ ClearLedger and ReceiptHub send an HTTP `POST` to `WEBHOOK_URL` each time an inv
 |--------|-------|-----------|
 | ClearLedger | `invoice.created` | `POST /api/invoices` or the `/invoices/new` upload form |
 | ClearLedger | `invoice.updated` | `PATCH /api/invoices/{id}/action` (approve, contact vendor, escalate) or a document upload or replacement |
-| ReceiptHub | `goods_receipt.created` | `POST /api/grs` or the `/gr/new` form |
-| ReceiptHub | `goods_receipt.updated` | `PUT /api/grs/{gr_number}` or the GR edit form |
+| ReceiptsLog | `goods_receipt.created` | `POST /api/grs` or the `/gr/new` form |
+| ReceiptsLog | `goods_receipt.updated` | `PUT /api/grs/{gr_number}` or the GR edit form |
 
 Headers: `Content-Type: application/json`, `X-Webhook-Event: <event>`, and the signature header when a secret is configured.
 
 ```json
 {
   "event": "goods_receipt.updated",
-  "source": "receipthub",
+  "source": "receiptslog",
   "occurred_at": "2026-10-01T09:30:00+00:00",
   "data": { "gr_number": "GR-2024-0045", "po_number": "PO-2024-0100", "status": "complete", "line_items": [ ... ] }
 }
@@ -849,7 +849,7 @@ The sequence the automation follows when processing an invoice (Easy tier):
    Header:      X-API-Key: demo-key-procureos
 
 3. GET /api/gr/by-po/{po_number}                   → fetch all GR data for that PO
-   ReceiptHub:  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receipthub/api/gr/by-po/{po_number}
+   ReceiptsLog:  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/by-po/{po_number}
    Header:      X-API-Key: demo-key-receipthub
 
 4. [automation applies matching logic + computes variances]

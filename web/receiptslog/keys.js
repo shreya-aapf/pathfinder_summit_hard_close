@@ -2,12 +2,12 @@ import { api } from '/assets/js/api.js';
 import { $, esc } from '/assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
 
-const view = mountLayout('keys', 'API Keys — ReceiptHub');
+const view = mountLayout('keys', 'API Keys — ReceiptsLog');
 let newKey = null;
 
 async function load() {
   try {
-    const { keys } = await api('receipthub', '/api/keys');
+    const { keys } = await api('receiptslog', '/api/keys');
     render(keys);
   } catch (e) {
     flash(`Could not load API keys: ${e.message}`, 'error');
@@ -66,7 +66,7 @@ function render(keys) {
   $('#key-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const made = await api('receipthub', '/api/keys', { method: 'POST', json: { label: $('#key-label').value } });
+      const made = await api('receiptslog', '/api/keys', { method: 'POST', json: { label: $('#key-label').value } });
       newKey = made.key;
     } catch (err) {
       flash(`Could not create key: ${err.message}`, 'error');
@@ -78,7 +78,7 @@ function render(keys) {
   view.querySelectorAll('[data-revoke]').forEach((btn) => btn.addEventListener('click', async () => {
     if (!confirm('Revoke this key? Any automation using it will stop working immediately.')) return;
     try {
-      await api('receipthub', `/api/keys/${encodeURIComponent(btn.dataset.revoke)}`, { method: 'DELETE' });
+      await api('receiptslog', `/api/keys/${encodeURIComponent(btn.dataset.revoke)}`, { method: 'DELETE' });
       newKey = null;
       flash('API key revoked.', 'success');
     } catch (err) {

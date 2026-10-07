@@ -133,7 +133,7 @@ router.post('/api/grs', async ({ req }) => {
   }
 
   const created = await serialize(data);
-  await sendWebhook('receipthub', 'goods_receipt.created', created);
+  await sendWebhook('receiptslog', 'goods_receipt.created', created);
   return json(created, 201);
 });
 
@@ -161,7 +161,7 @@ router.put('/api/grs/:gr_number', async ({ req, params }) => {
   }
 
   const payload = await serialize((await getGr(params.gr_number))!);
-  await sendWebhook('receipthub', 'goods_receipt.updated', payload);
+  await sendWebhook('receiptslog', 'goods_receipt.updated', payload);
   return json(payload);
 });
 
@@ -177,6 +177,6 @@ router.delete('/api/grs/:gr_number', async ({ req, params }) => {
   return noContent();
 });
 
-addKeyManagement(router, db, 'gr_api_keys', 'rh');
+addKeyManagement(router, db, 'gr_api_keys', 'rl');
 
-Deno.serve((req) => router.handle(req, 'receipthub'));
+Deno.serve((req) => router.handle(req, 'receiptslog'));

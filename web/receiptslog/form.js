@@ -3,7 +3,7 @@ import { $, $$, esc, flashNext, param } from '/assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
 
 const editing = param('n');
-const view = mountLayout('receipts', `${editing ? `Edit ${editing}` : 'New Receipt'} — ReceiptHub`);
+const view = mountLayout('receipts', `${editing ? `Edit ${editing}` : 'New Receipt'} — ReceiptsLog`);
 
 const CONDITIONS = [['good', 'Good'], ['damaged', 'Damaged'], ['rejected', 'Rejected']];
 const STATUSES = [['partial', 'Partial'], ['complete', 'Complete'], ['rejected', 'Rejected']];
@@ -29,7 +29,7 @@ const rowHtml = (n, li = {}) => `
 
 function render(gr) {
   const lines = gr?.line_items?.length ? gr.line_items : [{}];
-  const back = gr ? `/receipthub/gr.html?n=${encodeURIComponent(gr.gr_number)}` : '/receipthub/';
+  const back = gr ? `/receiptslog/gr.html?n=${encodeURIComponent(gr.gr_number)}` : '/receiptslog/';
   const status = gr?.status || 'partial';
   // Create mode requires every header field the API requires; edit keeps them optional like PUT does.
   const star = gr ? '' : ' <span class="required">*</span>';
@@ -170,19 +170,19 @@ async function submit(gr) {
   const button = $('#submit');
   button.disabled = true;
   try {
-    if (gr) await api('receipthub', `/api/grs/${encodeURIComponent(gr_number)}`, { method: 'PUT', json: body });
-    else await api('receipthub', '/api/grs', { method: 'POST', json: { gr_number, ...body } });
+    if (gr) await api('receiptslog', `/api/grs/${encodeURIComponent(gr_number)}`, { method: 'PUT', json: body });
+    else await api('receiptslog', '/api/grs', { method: 'POST', json: { gr_number, ...body } });
   } catch (e) {
     flash(gr ? `Error updating GR: ${e.message}` : `Failed to create GR record. ${e.message}`, 'error');
     button.disabled = false;
     return;
   }
   flashNext(`GR ${gr_number} ${gr ? 'updated' : 'created'} successfully.`, 'success');
-  location.href = `/receipthub/gr.html?n=${encodeURIComponent(gr_number)}`;
+  location.href = `/receiptslog/gr.html?n=${encodeURIComponent(gr_number)}`;
 }
 
 try {
-  render(editing ? await api('receipthub', `/api/gr/${encodeURIComponent(editing)}`) : null);
+  render(editing ? await api('receiptslog', `/api/gr/${encodeURIComponent(editing)}`) : null);
 } catch (e) {
   flash(e.status === 404 ? `GR ${editing} was not found.` : e.message, 'error');
 }
