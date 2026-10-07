@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { flashNext, showFlash } from './ui.js';
+import { url } from './site.js';
 
 const flash = document.getElementById('flash');
 
@@ -19,7 +20,7 @@ document.getElementById('register-form').addEventListener('submit', async (event
       },
     });
     flashNext('Account created. Sign in below.', 'success');
-    location.href = '/login.html';
+    location.href = url('login.html');
   } catch (e) {
     showFlash(flash, e.message, 'error');
     button.disabled = false;

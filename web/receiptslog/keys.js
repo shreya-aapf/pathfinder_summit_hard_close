@@ -1,5 +1,5 @@
-import { api } from '/assets/js/api.js';
-import { $, esc } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, esc } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
 
 const view = mountLayout('keys', 'API Keys — ReceiptsLog');

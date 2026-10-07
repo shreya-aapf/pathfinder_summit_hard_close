@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { empty, flash, fmt, mountLayout, subsidiaryParam, tabs } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('accruals', 'Accruals');
 const subFilter = subsidiaryParam(param('subsidiary')) || 'all';
@@ -51,7 +52,7 @@ function render(rows) {
     <tbody>${rows.map(row).join('')}</tbody>
   </table>
 </div>` : empty('accruals', 'No accruals found', subFilter !== 'all'
-    ? `No accruals for Subsidiary ${esc(subFilter)}. <a href="/meridiangl/accruals.html" class="link-plain">View all subsidiaries</a>`
+    ? `No accruals for Subsidiary ${esc(subFilter)}. <a href="${url(`meridiangl/accruals.html`)}" class="link-plain">View all subsidiaries</a>`
     : 'No accruals have been recorded for this period yet.');
 
   view.innerHTML = `
@@ -61,7 +62,7 @@ function render(rows) {
     <p class="page-subtitle">Estimated vs. actual accruals, by subsidiary and period</p>
   </div>
 </div>
-${tabs(TABS, subFilter, (v) => `/meridiangl/accruals.html?subsidiary=${v}${periodFilter ? `&period=${encodeURIComponent(periodFilter)}` : ''}`)}
+${tabs(TABS, subFilter, (v) => url(`meridiangl/accruals.html?subsidiary=${v}${periodFilter ? `&period=${encodeURIComponent(periodFilter)}` : ''}`))}
 ${body}`;
 }
 

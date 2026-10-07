@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { $, flashNext } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, flashNext } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('upload', 'Upload Invoice');
 
@@ -70,7 +71,7 @@ $('#upload-form').addEventListener('submit', async (e) => {
   try {
     const invoice = await api('clearledger', '/api/invoices/upload', { method: 'POST', form: new FormData(e.target) });
     flashNext(`Invoice ${invoice.invoice_number} uploaded.`, 'success');
-    location.href = `/clearledger/invoice.html?id=${encodeURIComponent(invoice.id)}`;
+    location.href = url(`clearledger/invoice.html?id=${encodeURIComponent(invoice.id)}`);
   } catch (err) {
     flash(err.message, 'error');
     btn.disabled = false;

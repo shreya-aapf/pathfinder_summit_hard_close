@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { ICON_PATHS, emptyState, flash, mountLayout, refTag, showToast } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('board', 'Close Status');
 const statusFilter = (param('status') || '').trim() || 'all';
@@ -62,7 +63,7 @@ function render(items, counts) {
       ICON_PATHS.board,
       'No close status items found',
       statusFilter !== 'all'
-        ? `No items with status "${esc(statusFilter)}". <a href="/audittrail/">View all items</a>`
+        ? `No items with status "${esc(statusFilter)}". <a href="${url(`audittrail/`)}">View all items</a>`
         : 'No close items have been recorded yet.',
     );
 

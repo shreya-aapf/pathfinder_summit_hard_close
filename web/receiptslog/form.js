@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { $, $$, esc, flashNext, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, $$, esc, flashNext, param } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const editing = param('n');
 const view = mountLayout('receipts', `${editing ? `Edit ${editing}` : 'New Receipt'} — ReceiptsLog`);
@@ -29,7 +30,7 @@ const rowHtml = (n, li = {}) => `
 
 function render(gr) {
   const lines = gr?.line_items?.length ? gr.line_items : [{}];
-  const back = gr ? `/receiptslog/gr.html?n=${encodeURIComponent(gr.gr_number)}` : '/receiptslog/';
+  const back = gr ? url(`receiptslog/gr.html?n=${encodeURIComponent(gr.gr_number)}`) : url('receiptslog/');
   const status = gr?.status || 'partial';
   // Create mode requires every header field the API requires; edit keeps them optional like PUT does.
   const star = gr ? '' : ' <span class="required">*</span>';
@@ -178,7 +179,7 @@ async function submit(gr) {
     return;
   }
   flashNext(`GR ${gr_number} ${gr ? 'updated' : 'created'} successfully.`, 'success');
-  location.href = `/receiptslog/gr.html?n=${encodeURIComponent(gr_number)}`;
+  location.href = url(`receiptslog/gr.html?n=${encodeURIComponent(gr_number)}`);
 }
 
 try {

@@ -1,6 +1,7 @@
-import { api, openDocument } from '/assets/js/api.js';
-import { $, esc, flashNext, money, param, titleCase } from '/assets/js/ui.js';
+import { api, openDocument } from '../assets/js/api.js';
+import { $, esc, flashNext, money, param, titleCase } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const CRITICALITY = { keep_the_lights_on: 'Keep the lights on', nice_to_have: 'Nice to have' };
 
@@ -24,13 +25,13 @@ function render(po) {
   view.innerHTML = `
     <div class="page-header">
       <div>
-        <a href="/procureos/" class="back-link">&larr; Purchase Orders</a>
+        <a href="${url(`procureos/`)}" class="back-link">&larr; Purchase Orders</a>
         <h1 class="page-title">${esc(po.po_number)}</h1>
       </div>
       <div class="header-actions">
-        <a href="/clearledger/?po_number=${n}" target="_blank" rel="noopener" class="btn btn-secondary">View in ClearLedger ↗</a>
-        <a href="/receiptslog/?search=${n}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptsLog ↗</a>
-        <a href="/procureos/form.html?n=${n}" class="btn btn-secondary">Edit</a>
+        <a href="${url(`clearledger/?po_number=${n}`)}" target="_blank" rel="noopener" class="btn btn-secondary">View in ClearLedger ↗</a>
+        <a href="${url(`receiptslog/?search=${n}`)}" target="_blank" rel="noopener" class="btn btn-secondary">View in ReceiptsLog ↗</a>
+        <a href="${url(`procureos/form.html?n=${n}`)}" class="btn btn-secondary">Edit</a>
         <button type="button" class="btn btn-danger" id="delete-open">Delete</button>
       </div>
     </div>
@@ -108,7 +109,7 @@ function render(po) {
     try {
       await api('procureos', `/api/pos/${n}`, { method: 'DELETE' });
       flashNext(`Purchase Order ${po.po_number} deleted.`, 'success');
-      location.href = '/procureos/';
+      location.href = url('procureos/');
     } catch (e) {
       flash(`Error deleting PO: ${e.message}`, 'error');
     }
@@ -128,13 +129,13 @@ function render(po) {
 }
 
 if (!number) {
-  location.replace('/procureos/');
+  location.replace(url('procureos/'));
 } else {
   try {
     render(await api('procureos', `/api/po/${encodeURIComponent(number)}`));
   } catch (e) {
     view.innerHTML = `
-      <div class="page-header"><div><a href="/procureos/" class="back-link">&larr; Purchase Orders</a>
+      <div class="page-header"><div><a href="${url(`procureos/`)}" class="back-link">&larr; Purchase Orders</a>
       <h1 class="page-title">Not found</h1></div></div>
       <div class="empty-state"><p class="empty-message">${e.status === 404 ? `Purchase order ${esc(number)} was not found.` : esc(e.message)}</p></div>`;
   }

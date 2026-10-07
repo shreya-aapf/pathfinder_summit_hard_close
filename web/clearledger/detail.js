@@ -1,6 +1,7 @@
-import { api, openDocument } from '/assets/js/api.js';
-import { $, esc, flashNext, param } from '/assets/js/ui.js';
+import { api, openDocument } from '../assets/js/api.js';
+import { $, esc, flashNext, param } from '../assets/js/ui.js';
 import { flash, mountLayout, showToast } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('queue', 'Invoice');
 
@@ -42,7 +43,7 @@ function render(inv) {
         <div class="match-summary-detail">Do not release payment until this is resolved.</div>
       </div>
       <div class="match-summary-badge">
-        <a href="/audittrail/vendor-flag.html?id=${encodeURIComponent(inv.vendor_flag.id)}" target="_blank" rel="noopener" class="btn btn--escalate" style="width:auto; padding: 6px 14px;">View in AuditTrail ↗</a>
+        <a href="${url(`audittrail/vendor-flag.html?id=${encodeURIComponent(inv.vendor_flag.id)}`)}" target="_blank" rel="noopener" class="btn btn--escalate" style="width:auto; padding: 6px 14px;">View in AuditTrail ↗</a>
       </div>
     </div>` : '';
 
@@ -104,7 +105,7 @@ function render(inv) {
   view.innerHTML = `
     <div class="detail-layout">
       <div class="detail-main">
-        <a href="/clearledger/" class="back-link">${svg('<polyline points="15 18 9 12 15 6"/>', 14, 2.5)} Invoice Queue</a>
+        <a href="${url(`clearledger/`)}" class="back-link">${svg('<polyline points="15 18 9 12 15 6"/>', 14, 2.5)} Invoice Queue</a>
 
         <div class="detail-header">
           <div class="detail-header-left">
@@ -112,8 +113,8 @@ function render(inv) {
             <div class="detail-meta">
               <span><strong>Vendor:</strong> ${esc(inv.vendor_name)} (${esc(inv.vendor_id)})</span>
               <span><strong>Date:</strong> ${esc(inv.invoice_date ?? '')}</span>
-              <span><strong>PO:</strong> <a href="/procureos/po.html?n=${po}" target="_blank" rel="noopener" class="link-plain">${esc(inv.po_number)} ↗</a></span>
-              ${inv.gr_number ? `<span><strong>GR:</strong> <a href="/receiptslog/gr.html?n=${encodeURIComponent(inv.gr_number)}" target="_blank" rel="noopener" class="link-plain">${esc(inv.gr_number)} ↗</a></span>` : ''}
+              <span><strong>PO:</strong> <a href="${url(`procureos/po.html?n=${po}`)}" target="_blank" rel="noopener" class="link-plain">${esc(inv.po_number)} ↗</a></span>
+              ${inv.gr_number ? `<span><strong>GR:</strong> <a href="${url(`receiptslog/gr.html?n=${encodeURIComponent(inv.gr_number)}`)}" target="_blank" rel="noopener" class="link-plain">${esc(inv.gr_number)} ↗</a></span>` : ''}
             </div>
           </div>
           <div class="detail-header-right">
@@ -228,14 +229,14 @@ function wireDocument(id, inv) {
 try {
   const id = await resolveId();
   if (!id) {
-    location.replace('/clearledger/');
+    location.replace(url('clearledger/'));
   } else {
     render(await api('clearledger', `/api/invoices/${encodeURIComponent(id)}`));
   }
 } catch (e) {
   if (e.status === 404) {
     flashNext(param('number') ? `No invoice found with number ${param('number')}.` : 'Invoice not found.', 'error');
-    location.replace('/clearledger/');
+    location.replace(url('clearledger/'));
   } else {
     flash(`Error loading invoice: ${e.message}`, 'error');
   }

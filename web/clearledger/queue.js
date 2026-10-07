@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('queue', 'Invoice Queue');
 
@@ -17,7 +18,7 @@ function queueUrl(status) {
   if (status) p.set('status', status);
   if (poFilter) p.set('po_number', poFilter);
   if (vendorFilter) p.set('vendor_id', vendorFilter);
-  return `/clearledger/?${p}`;
+  return url(`clearledger/?${p}`);
 }
 
 async function loadAll() {
@@ -49,11 +50,11 @@ function render(all) {
         ${vendorFilter ? `Filtered by vendor <strong>${esc(vendorFilter)}</strong>` : ''}
         — linked from another system.
       </span>
-      <a href="/clearledger/?status=${encodeURIComponent(statusFilter)}" class="link-plain">Clear filter</a>
+      <a href="${url(`clearledger/?status=${encodeURIComponent(statusFilter)}`)}" class="link-plain">Clear filter</a>
     </div>` : '';
 
   const rows = invoices.map((inv) => {
-    const href = `/clearledger/invoice.html?id=${encodeURIComponent(inv.id)}`;
+    const href = url(`clearledger/invoice.html?id=${encodeURIComponent(inv.id)}`);
     const vp = parseFloat(inv.variance_pct) || 0;
     const [mClass, mLabel] = MATCH_BADGE[inv.match_status] || ['gray', inv.match_status ?? ''];
     const sClass = STATUS_BADGE[inv.status] || 'gray';
@@ -93,7 +94,7 @@ function render(all) {
       </div>
       <p class="empty-state-title">No invoices found</p>
       <p class="empty-state-sub">${statusFilter !== 'all'
-        ? `No invoices with status "${esc(statusFilter)}". <a href="/clearledger/">View all invoices</a>`
+        ? `No invoices with status "${esc(statusFilter)}". <a href="${url(`clearledger/`)}">View all invoices</a>`
         : "The automation hasn't posted any invoices yet."}</p>
     </div>`;
 

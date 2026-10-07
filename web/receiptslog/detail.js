@@ -1,7 +1,8 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { DELETE_MODAL, capitalize, mountLayout } from './layout.js';
 import { wireDeleteModal } from './delete-modal.js';
+import { url } from '../assets/js/site.js';
 
 const number = param('n');
 const view = mountLayout('receipts', `${number || 'Receipt'} — ReceiptsLog`);
@@ -43,7 +44,7 @@ function render(gr) {
   document.title = `${gr.gr_number} — ReceiptsLog`;
 
   view.innerHTML = `
-    <div class="breadcrumb"><a href="/receiptslog/" class="breadcrumb-link">← All Receipts</a></div>
+    <div class="breadcrumb"><a href="${url(`receiptslog/`)}" class="breadcrumb-link">← All Receipts</a></div>
 
     <div class="detail-header">
       <div class="detail-header-left">
@@ -56,9 +57,9 @@ function render(gr) {
       <div class="detail-header-right">
         <span class="badge badge-${esc(gr.status)} badge-lg">${esc(capitalize(gr.status))}</span>
         <div class="detail-actions">
-          <a href="/procureos/po.html?n=${po}" target="_blank" rel="noopener" class="btn btn-secondary">View PO in ProcureOS ↗</a>
-          <a href="/clearledger/?po_number=${po}" target="_blank" rel="noopener" class="btn btn-secondary">View invoices in ClearLedger ↗</a>
-          <a href="/receiptslog/form.html?n=${n}" class="btn btn-secondary">Edit</a>
+          <a href="${url(`procureos/po.html?n=${po}`)}" target="_blank" rel="noopener" class="btn btn-secondary">View PO in ProcureOS ↗</a>
+          <a href="${url(`clearledger/?po_number=${po}`)}" target="_blank" rel="noopener" class="btn btn-secondary">View invoices in ClearLedger ↗</a>
+          <a href="${url(`receiptslog/form.html?n=${n}`)}" class="btn btn-secondary">Edit</a>
           <button type="button" class="btn btn-danger" data-delete="${esc(gr.gr_number)}">Delete</button>
         </div>
       </div>
@@ -94,13 +95,13 @@ function render(gr) {
 }
 
 if (!number) {
-  location.replace('/receiptslog/');
+  location.replace(url('receiptslog/'));
 } else {
   try {
     render(await api('receiptslog', `/api/gr/${encodeURIComponent(number)}`));
   } catch (e) {
     view.innerHTML = `
-      <div class="breadcrumb"><a href="/receiptslog/" class="breadcrumb-link">← All Receipts</a></div>
+      <div class="breadcrumb"><a href="${url(`receiptslog/`)}" class="breadcrumb-link">← All Receipts</a></div>
       <h1 class="page-title">Not found</h1>
       <div class="empty-state"><p>${e.status === 404 ? `Receipt ${esc(number)} was not found.` : esc(e.message)}</p></div>`;
   }

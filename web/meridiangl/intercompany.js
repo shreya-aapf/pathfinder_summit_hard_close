@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { empty, flash, fmt, icon, mountLayout, subsidiaryParam, tabs } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('intercompany', 'Intercompany');
 const subFilter = subsidiaryParam(param('subsidiary')) || 'all';
@@ -58,8 +59,8 @@ function render(entries) {
   ${icon('info', 15)}
   <span><code>timing_difference</code> means the same amount was posted by both subsidiaries, just in different periods — informational, not a booking error. <code>error</code> flags need investigation.</span>
 </div>
-${tabs(SUB_TABS, subFilter, (v) => `/meridiangl/intercompany.html?subsidiary=${v}&flag_type=${flagFilter}`)}
-${tabs(FLAG_TABS, flagFilter, (v) => `/meridiangl/intercompany.html?subsidiary=${subFilter}&flag_type=${v}`)}
+${tabs(SUB_TABS, subFilter, (v) => url(`meridiangl/intercompany.html?subsidiary=${v}&flag_type=${flagFilter}`))}
+${tabs(FLAG_TABS, flagFilter, (v) => url(`meridiangl/intercompany.html?subsidiary=${subFilter}&flag_type=${v}`))}
 ${body}`;
 }
 

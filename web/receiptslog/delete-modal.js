@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { flashNext } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { flashNext } from '../assets/js/ui.js';
 import { flash } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 // Event-delegated delete confirmation. Any element with data-delete="<gr_number>" opens the modal
 // rendered from DELETE_MODAL; confirming calls the API, then redirects to the list.
@@ -27,7 +28,7 @@ export function wireDeleteModal() {
       try {
         await api('receiptslog', `/api/grs/${encodeURIComponent(number)}`, { method: 'DELETE' });
         flashNext(`GR ${number} deleted.`, 'success');
-        location.href = '/receiptslog/';
+        location.href = url('receiptslog/');
       } catch (err) {
         flash(`Error deleting GR: ${err.message}`, 'error');
       }

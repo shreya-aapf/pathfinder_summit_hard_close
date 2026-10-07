@@ -1,12 +1,13 @@
 import { requireLogin, signOut } from './auth.js';
 import { esc } from './ui.js';
+import { url } from './site.js';
 
 const APPS = [
-  { name: 'ClearLedger', path: '/clearledger/', blurb: 'Invoice review portal for flagged 3-way match results.' },
-  { name: 'ProcureOS', path: '/procureos/', blurb: 'Purchase orders, justification answers and supporting documents.' },
-  { name: 'ReceiptsLog', path: '/receiptslog/', blurb: 'Goods received records against purchase orders.' },
-  { name: 'AuditTrail', path: '/audittrail/', blurb: 'Forensic close dashboard: vendor flags, flux analysis and close status.' },
-  { name: 'MeridianGL', path: '/meridiangl/', blurb: 'GL balance sheet, intercompany log and accruals by subsidiary.' },
+  { name: 'ClearLedger', path: url('clearledger/'), blurb: 'Invoice review portal for flagged 3-way match results.' },
+  { name: 'ProcureOS', path: url('procureos/'), blurb: 'Purchase orders, justification answers and supporting documents.' },
+  { name: 'ReceiptsLog', path: url('receiptslog/'), blurb: 'Goods received records against purchase orders.' },
+  { name: 'AuditTrail', path: url('audittrail/'), blurb: 'Forensic close dashboard: vendor flags, flux analysis and close status.' },
+  { name: 'MeridianGL', path: url('meridiangl/'), blurb: 'GL balance sheet, intercompany log and accruals by subsidiary.' },
 ];
 
 const session = requireLogin();

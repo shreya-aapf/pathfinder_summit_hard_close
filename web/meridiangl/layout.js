@@ -1,5 +1,6 @@
-import { requireLogin, signOut } from '/assets/js/auth.js';
-import { esc } from '/assets/js/ui.js';
+import { requireLogin, signOut } from '../assets/js/auth.js';
+import { esc } from '../assets/js/ui.js';
+import { url } from '../assets/js/site.js';
 
 const ICONS = {
   balance: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/>',
@@ -12,9 +13,9 @@ export const icon = (name, size = 16, stroke = 2) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
 
 const NAV = [
-  ['balance', '/meridiangl/', 'Balance Sheet'],
-  ['intercompany', '/meridiangl/intercompany.html', 'Intercompany'],
-  ['accruals', '/meridiangl/accruals.html', 'Accruals'],
+  ['balance', url('meridiangl/'), 'Balance Sheet'],
+  ['intercompany', url('meridiangl/intercompany.html'), 'Intercompany'],
+  ['accruals', url('meridiangl/accruals.html'), 'Accruals'],
 ];
 
 // Renders the MeridianGL chrome (sidebar + main) into #root and returns the content element.
@@ -33,7 +34,7 @@ export function mountLayout(active, title) {
         <a href="${href}" class="nav-link ${active === key ? 'active' : ''}">${icon(key)}
           ${label}
         </a>`).join('')}
-        <a href="/" class="nav-link">All apps</a>
+        <a href="${url('')}" class="nav-link">All apps</a>
         <button type="button" class="nav-link" id="signout" style="background:none;border:0;width:100%;cursor:pointer;font-family:inherit;text-align:left;">Sign out (${esc(session.username)})</button>
       </nav>
       <div class="sidebar-footer">

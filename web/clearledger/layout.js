@@ -1,5 +1,6 @@
-import { requireLogin, signOut } from '/assets/js/auth.js';
-import { consumeFlash, esc, showFlash } from '/assets/js/ui.js';
+import { requireLogin, signOut } from '../assets/js/auth.js';
+import { consumeFlash, esc, showFlash } from '../assets/js/ui.js';
+import { url } from '../assets/js/site.js';
 
 const flashClass = (category) => `flash flash--${category}`;
 
@@ -27,10 +28,10 @@ export function mountLayout(active, title) {
           <span class="logo-text">ClearLedger</span>
         </div>
         <nav class="sidebar-nav">
-          ${link('queue', '/clearledger/', 'queue', 'Invoice Queue')}
-          ${link('upload', '/clearledger/upload.html', 'upload', 'Upload Invoice')}
-          ${link('settings', '/clearledger/settings.html', 'settings', 'Settings')}
-          ${link('keys', '/clearledger/api-keys.html', 'keys', 'API Keys')}
+          ${link('queue', url('clearledger/'), 'queue', 'Invoice Queue')}
+          ${link('upload', url('clearledger/upload.html'), 'upload', 'Upload Invoice')}
+          ${link('settings', url('clearledger/settings.html'), 'settings', 'Settings')}
+          ${link('keys', url('clearledger/api-keys.html'), 'keys', 'API Keys')}
           ${link('', '/', 'apps', 'All apps')}
         </nav>
         <div class="sidebar-footer">

@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { $, $$, esc, flashNext, money, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, $$, esc, flashNext, money, param } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const TEXT_FIELDS = ['purchase_what', 'purchase_why', 'no_purchase_impact', 'alternative_tool', 'roi_benefit', 'okr_alignment'];
 const STATUSES = [['open', 'Open'], ['partially_received', 'Partially Received'], ['closed', 'Closed'], ['cancelled', 'Cancelled']];
@@ -37,7 +38,7 @@ function render(po) {
   const status = po?.status || 'open';
   const currency = po?.currency || 'USD';
   const lines = po?.line_items?.length ? po.line_items : [{}];
-  const back = po ? `/procureos/po.html?n=${encodeURIComponent(po.po_number)}` : '/procureos/';
+  const back = po ? url(`procureos/po.html?n=${encodeURIComponent(po.po_number)}`) : url('procureos/');
 
   view.innerHTML = `
     <div class="page-header">
@@ -242,12 +243,12 @@ async function submit(po) {
       await api('procureos', `/api/pos/${encodeURIComponent(number)}/document`, { method: 'POST', form });
     } catch (e) {
       flashNext(`Purchase Order ${number} ${verb}, but the document upload failed: ${e.message}`, 'error');
-      location.href = `/procureos/po.html?n=${encodeURIComponent(number)}`;
+      location.href = url(`procureos/po.html?n=${encodeURIComponent(number)}`);
       return;
     }
   }
   flashNext(`Purchase Order ${number} ${verb}.`, 'success');
-  location.href = `/procureos/po.html?n=${encodeURIComponent(number)}`;
+  location.href = url(`procureos/po.html?n=${encodeURIComponent(number)}`);
 }
 
 try {

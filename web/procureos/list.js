@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { $, esc, flashNext, money, param, titleCase } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, esc, flashNext, money, param, titleCase } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('pos', 'Purchase Orders — ProcureOS');
 const statusFilter = param('status') || '';
@@ -16,7 +17,7 @@ function listUrl({ status = statusFilter, q = search } = {}) {
   if (status) p.set('status', status);
   if (q) p.set('search', q);
   const s = p.toString();
-  return `/procureos/${s ? `?${s}` : ''}`;
+  return url(`procureos/${s ? `?${s}` : ''}`);
 }
 
 async function loadAll() {
@@ -45,7 +46,7 @@ function render(pos) {
         </tr></thead>
         <tbody>${rows.map((po) => `
           <tr>
-            <td><a href="/procureos/po.html?n=${encodeURIComponent(po.po_number)}" class="link-primary">${esc(po.po_number)}</a></td>
+            <td><a href="${url(`procureos/po.html?n=${encodeURIComponent(po.po_number)}`)}" class="link-primary">${esc(po.po_number)}</a></td>
             <td>
               <div class="vendor-name">${esc(po.vendor_name || '—')}</div>
               ${po.vendor_id ? `<div class="text-muted text-sm">${esc(po.vendor_id)}</div>` : ''}
@@ -55,8 +56,8 @@ function render(pos) {
             <td class="text-right font-mono">${esc(po.currency || 'USD')} ${money(po.total_amount)}</td>
             <td><span class="badge badge-${esc(po.status)}">${esc(titleCase(po.status))}</span></td>
             <td class="actions-cell">
-              <a href="/procureos/po.html?n=${encodeURIComponent(po.po_number)}" class="btn btn-ghost btn-xs">View</a>
-              <a href="/procureos/form.html?n=${encodeURIComponent(po.po_number)}" class="btn btn-ghost btn-xs">Edit</a>
+              <a href="${url(`procureos/po.html?n=${encodeURIComponent(po.po_number)}`)}" class="btn btn-ghost btn-xs">View</a>
+              <a href="${url(`procureos/form.html?n=${encodeURIComponent(po.po_number)}`)}" class="btn btn-ghost btn-xs">Edit</a>
               <button type="button" class="btn btn-danger btn-xs" data-delete="${esc(po.po_number)}">Delete</button>
             </td>
           </tr>`).join('')}
@@ -65,13 +66,13 @@ function render(pos) {
     </div>` : `
     <div class="empty-state">
       <p class="empty-message">${search ? `No purchase orders match "${esc(search)}".` : 'No purchase orders yet.'}</p>
-      <a href="/procureos/form.html" class="btn btn-primary">Create your first PO</a>
+      <a href="${url(`procureos/form.html`)}" class="btn btn-primary">Create your first PO</a>
     </div>`;
 
   view.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">Purchase Orders</h1>
-      <a href="/procureos/form.html" class="btn btn-primary">+ New PO</a>
+      <a href="${url(`procureos/form.html`)}" class="btn btn-primary">+ New PO</a>
     </div>
     <div class="toolbar">
       <form class="search-form" id="search-form">

@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, param } from '../assets/js/ui.js';
 import { empty, flash, fmt, mountLayout, subsidiaryParam, tabs } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('balance', 'Balance Sheet');
 const filter = subsidiaryParam(param('subsidiary')) || 'all';
@@ -40,7 +41,7 @@ function render(rows) {
     <tbody>${rows.map(row).join('')}</tbody>
   </table>
 </div>` : empty('balance', 'No GL accounts found', filter !== 'all'
-    ? `No accounts for Subsidiary ${esc(filter)}. <a href="/meridiangl/" class="link-plain">View all subsidiaries</a>`
+    ? `No accounts for Subsidiary ${esc(filter)}. <a href="${url(`meridiangl/`)}" class="link-plain">View all subsidiaries</a>`
     : 'No accounts have been loaded into the ledger yet.');
 
   view.innerHTML = `
@@ -50,7 +51,7 @@ function render(rows) {
     <p class="page-subtitle">GL account balances vs. sub-ledger, by subsidiary</p>
   </div>
 </div>
-${tabs(TABS, filter, (v) => `/meridiangl/?subsidiary=${v}`)}
+${tabs(TABS, filter, (v) => url(`meridiangl/?subsidiary=${v}`))}
 ${body}`;
 }
 

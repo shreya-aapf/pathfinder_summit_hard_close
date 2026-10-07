@@ -1,5 +1,6 @@
-import { requireLogin, signOut } from '/assets/js/auth.js';
-import { consumeFlash, esc } from '/assets/js/ui.js';
+import { requireLogin, signOut } from '../assets/js/auth.js';
+import { consumeFlash, esc } from '../assets/js/ui.js';
+import { url } from '../assets/js/site.js';
 
 const ICONS = {
   board: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
@@ -14,14 +15,14 @@ export const svg = (inner, size = 16, width = 2) =>
 export const icon = (name, size, width) => svg(ICONS[name], size, width);
 
 const NAV = [
-  ['board', '/audittrail/', 'Close Status', 'board'],
-  ['flags', '/audittrail/vendor-flags.html', 'Vendor Flags', 'flags'],
-  ['flux', '/audittrail/flux.html', 'Flux Analysis', 'flux'],
-  ['log', '/audittrail/audit-log.html', 'Audit Log', 'log'],
+  ['board', url('audittrail/'), 'Close Status', 'board'],
+  ['flags', url('audittrail/vendor-flags.html'), 'Vendor Flags', 'flags'],
+  ['flux', url('audittrail/flux.html'), 'Flux Analysis', 'flux'],
+  ['log', url('audittrail/audit-log.html'), 'Audit Log', 'log'],
 ];
 
 // Link to the matching ClearLedger invoice (ClearLedger is ported separately).
-export const invoiceUrl = (number) => `/clearledger/invoice.html?number=${encodeURIComponent(number)}`;
+export const invoiceUrl = (number) => url(`clearledger/invoice.html?number=${encodeURIComponent(number)}`);
 
 // A reference tag; INV- references link out to ClearLedger.
 export function refTag(ref) {
@@ -44,7 +45,7 @@ export function mountLayout(active, title) {
         <nav class="sidebar-nav">
           ${NAV.map(([key, href, label, ic]) => `
             <a href="${href}" class="nav-link ${active === key ? 'active' : ''}">${icon(ic)} ${label}</a>`).join('')}
-          <a href="/" class="nav-link">All apps</a>
+          <a href="${url('')}" class="nav-link">All apps</a>
         </nav>
         <div class="sidebar-footer">
           <button type="button" class="signout-btn" id="signout">Sign out (${esc(session.username)})</button>

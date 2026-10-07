@@ -1,3 +1,5 @@
+import { url } from './site.js';
+
 const STORAGE_KEY = 'pathfinder_session';
 
 export function getSession() {
@@ -17,13 +19,13 @@ export function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function safeNext(value, fallback = '/') {
+export function safeNext(value, fallback = url('')) {
   return value && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\') ? value : fallback;
 }
 
 export function redirectToLogin() {
   const next = encodeURIComponent(location.pathname + location.search);
-  location.replace(`/login.html?next=${next}`);
+  location.replace(url(`login.html?next=${next}`));
 }
 
 // Call at the top of every protected page. The pages themselves are static; the data is
@@ -39,5 +41,5 @@ export function requireLogin() {
 
 export function signOut() {
   clearSession();
-  location.href = '/login.html';
+  location.href = url('login.html');
 }

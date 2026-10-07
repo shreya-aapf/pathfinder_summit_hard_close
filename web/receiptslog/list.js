@@ -1,7 +1,8 @@
-import { api } from '/assets/js/api.js';
-import { $, esc, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { $, esc, param } from '../assets/js/ui.js';
 import { DELETE_MODAL, capitalize, flash, mountLayout } from './layout.js';
 import { wireDeleteModal } from './delete-modal.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('receipts', 'Goods Received — ReceiptsLog');
 const STATUSES = ['partial', 'complete', 'rejected'];
@@ -14,7 +15,7 @@ function listUrl({ status = statusFilter, q = search } = {}) {
   if (q) p.set('search', q);
   if (status) p.set('status', status);
   const s = p.toString();
-  return `/receiptslog/${s ? `?${s}` : ''}`;
+  return url(`receiptslog/${s ? `?${s}` : ''}`);
 }
 
 async function loadAll() {
@@ -43,7 +44,7 @@ function render(all) {
         </tr></thead>
         <tbody>${grs.map((gr) => `
           <tr>
-            <td><a href="/receiptslog/gr.html?n=${encodeURIComponent(gr.gr_number)}" class="gr-link">${esc(gr.gr_number)}</a></td>
+            <td><a href="${url(`receiptslog/gr.html?n=${encodeURIComponent(gr.gr_number)}`)}" class="gr-link">${esc(gr.gr_number)}</a></td>
             <td class="mono">${esc(gr.po_number)}</td>
             <td>
               <span class="vendor-name">${esc(gr.vendor_name)}</span>
@@ -53,7 +54,7 @@ function render(all) {
             <td>${esc(gr.received_by)}</td>
             <td><span class="badge badge-${esc(gr.status)}">${esc(capitalize(gr.status))}</span></td>
             <td class="actions-cell">
-              <a href="/receiptslog/form.html?n=${encodeURIComponent(gr.gr_number)}" class="action-link">Edit</a>
+              <a href="${url(`receiptslog/form.html?n=${encodeURIComponent(gr.gr_number)}`)}" class="action-link">Edit</a>
               <button type="button" class="action-link action-link-danger" data-delete="${esc(gr.gr_number)}">Delete</button>
             </td>
           </tr>`).join('')}
@@ -62,7 +63,7 @@ function render(all) {
     </div>` : `
     <div class="empty-state">
       <p>No goods received records found.</p>
-      <a href="/receiptslog/form.html" class="btn btn-primary btn-sm">Record first receipt</a>
+      <a href="${url(`receiptslog/form.html`)}" class="btn btn-primary btn-sm">Record first receipt</a>
     </div>`;
 
   view.innerHTML = `
@@ -71,7 +72,7 @@ function render(all) {
         <h1 class="page-title">Goods Received</h1>
         <p class="page-subtitle">Warehouse receipt records — ${grs.length} record${grs.length !== 1 ? 's' : ''}${search ? ` matching "${esc(search)}"` : ''}</p>
       </div>
-      <a href="/receiptslog/form.html" class="btn btn-primary">+ New Receipt</a>
+      <a href="${url(`receiptslog/form.html`)}" class="btn btn-primary">+ New Receipt</a>
     </div>
     <div class="toolbar">
       <form class="search-form" id="search-form">

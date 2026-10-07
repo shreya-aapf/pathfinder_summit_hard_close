@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc, flashNext, param } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc, flashNext, param } from '../assets/js/ui.js';
 import { flash, invoiceUrl, mountLayout, svg } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('flags', 'Vendor Flag');
 
@@ -11,7 +12,7 @@ const statusBadge = (s) => s === 'open' ? '<span class="badge badge--urgent">Ope
 
 const notFound = () => {
   flashNext('Vendor flag not found.', 'error');
-  location.replace('/audittrail/vendor-flags.html');
+  location.replace(url('audittrail/vendor-flags.html'));
 };
 
 const id = param('id');
@@ -32,7 +33,7 @@ if (flag) {
   const invLink = inv ? `<a href="${esc(invoiceUrl(inv))}" target="_blank" rel="noopener"` : '';
 
   view.innerHTML = `
-    <a href="/audittrail/vendor-flags.html" class="back-link">
+    <a href="${url(`audittrail/vendor-flags.html`)}" class="back-link">
       ${svg('<polyline points="15 18 9 12 15 6"/>', 14, 2.5)}
       Vendor Flags
     </a>

@@ -1,5 +1,6 @@
-import { requireLogin, signOut } from '/assets/js/auth.js';
-import { consumeFlash, esc } from '/assets/js/ui.js';
+import { requireLogin, signOut } from '../assets/js/auth.js';
+import { consumeFlash, esc } from '../assets/js/ui.js';
+import { url } from '../assets/js/site.js';
 
 // Renders the ProcureOS chrome into #root and returns the element pages render into.
 export function mountLayout(active, title) {
@@ -8,14 +9,14 @@ export function mountLayout(active, title) {
   document.getElementById('root').innerHTML = `
     <nav class="topnav">
       <div class="topnav-inner">
-        <a href="/procureos/" class="topnav-brand"><span class="brand-icon">&#9670;</span>ProcureOS</a>
+        <a href="${url(`procureos/`)}" class="topnav-brand"><span class="brand-icon">&#9670;</span>ProcureOS</a>
         <div class="topnav-links">
-          <a href="/procureos/" class="topnav-link ${active === 'pos' ? 'active' : ''}">Purchase Orders</a>
-          <a href="/procureos/api-keys.html" class="topnav-link ${active === 'keys' ? 'active' : ''}">API Keys</a>
-          <a href="/" class="topnav-link">All apps</a>
+          <a href="${url(`procureos/`)}" class="topnav-link ${active === 'pos' ? 'active' : ''}">Purchase Orders</a>
+          <a href="${url(`procureos/api-keys.html`)}" class="topnav-link ${active === 'keys' ? 'active' : ''}">API Keys</a>
+          <a href="${url('')}" class="topnav-link">All apps</a>
         </div>
         <div class="topnav-actions">
-          <a href="/procureos/form.html" class="btn btn-primary btn-sm">+ New PO</a>
+          <a href="${url(`procureos/form.html`)}" class="btn btn-primary btn-sm">+ New PO</a>
           <button type="button" class="btn btn-ghost btn-sm" id="signout">Sign out (${esc(session.username)})</button>
         </div>
       </div>

@@ -1,6 +1,7 @@
-import { api } from '/assets/js/api.js';
-import { esc } from '/assets/js/ui.js';
+import { api } from '../assets/js/api.js';
+import { esc } from '../assets/js/ui.js';
 import { ICON_PATHS, emptyState, flash, mountLayout } from './layout.js';
+import { url } from '../assets/js/site.js';
 
 const view = mountLayout('flags', 'Vendor Flags');
 
@@ -17,7 +18,7 @@ const statusBadge = (s) => s === 'open' ? '<span class="badge badge--urgent">Ope
   : s === 'cleared' ? '<span class="badge badge--green">Cleared</span>'
   : `<span class="badge badge--gray">${esc(s)}</span>`;
 
-const detailUrl = (id) => `/audittrail/vendor-flag.html?id=${encodeURIComponent(id)}`;
+const detailUrl = (id) => url(`audittrail/vendor-flag.html?id=${encodeURIComponent(id)}`);
 
 let flags = [];
 try {
