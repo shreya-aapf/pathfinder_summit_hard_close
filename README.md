@@ -244,24 +244,261 @@ Five standalone systems. The automation workflow interacts with all of them depe
 
 Every system is a Supabase Edge Function. Endpoint paths in this document are relative to its base URL, for example `GET /api/po/PO-2024-0099` on ProcureOS is `GET https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/po/PO-2024-0099`. A logged-in web session's `Authorization: Bearer <token>` is accepted wherever an `X-API-Key` is.
 
-**Demo API keys**
-- ProcureOS: `demo-key-procureos`
-- ReceiptsLog: `demo-key-receipthub`
-- MeridianGL: `demo-key-meridiangl`
-- ClearLedger: `demo-key-clearledger`
-
 **Web UI.** The pages are a static site (the `web/` folder) that calls these functions from the browser. Sign in at `/login.html` (create an account at `/register.html`); one login covers every app, and the pages send it as a bearer token. API keys for ClearLedger, ProcureOS and ReceiptsLog are managed on each app's API Keys page. Webhooks are configured with Supabase secrets: `supabase secrets set WEBHOOK_URL=... WEBHOOK_SECRET=...`.
 
 ---
 
-### ClearLedger — Invoice Review Portal
+### Authentication
 
+Every endpoint needs credentials except AuditTrail's. There are three ways to authenticate; pick the one that fits how you are calling the API.
+
+| Option | Best for | How you send it | Lasts |
+|---|---|---|---|
+| **1. API key** | Automation, scripts, Automation Anywhere bots | `X-API-Key: <key>` header | Until you revoke it |
+| **2. Sign-in token** | The web pages, quick manual testing | `Authorization: Bearer <token>` header | 12 hours |
+| **3. No credentials** | AuditTrail only | nothing | n/a |
+
+The apps accept either option 1 or option 2 on the same endpoints, so use whichever is easier. Key management (`/api/keys`) is the one exception and needs option 2.
+
+<details open>
+<summary><strong>Option 1: API key</strong> (recommended for automation)</summary>
+
+**Demo keys.** These are shared and public, which is fine for the event. Create your own for anything else.
+
+| App | Demo key |
+|---|---|
+| ClearLedger | `demo-key-clearledger` |
+| ProcureOS | `demo-key-procureos` |
+| ReceiptsLog | `demo-key-receipthub` |
+| MeridianGL | `demo-key-meridiangl` |
+
+**Create your own key, from the web page.** Sign in, open the app's **API Keys** page (`clearledger/api-keys.html`, `procureos/api-keys.html` or `receiptslog/api-keys.html`), enter a label and press **Generate**. Copy the key straight away: it is shown once and only a hash is stored. Revoke it from the same page.
+
+**Create your own key, from the API.** Sign in first (option 2), then call `POST /api/keys` on the app you want a key for. See *Key management* below.
+
+**Use it.** Send the key in the `X-API-Key` header. No `Bearer` prefix.
+
+<details>
+<summary>curl</summary>
+
+```bash
+curl -H "X-API-Key: demo-key-procureos" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos
+```
+</details>
+
+<details>
+<summary>Python</summary>
+
+```python
+import requests
+
+BASE = "https://jmbwyttobedzszswarhd.supabase.co/functions/v1"
+headers = {"X-API-Key": "demo-key-procureos"}
+
+resp = requests.get(f"{BASE}/procureos/api/pos", headers=headers, timeout=30)
+resp.raise_for_status()
+print(resp.json())
+```
+</details>
+
+<details>
+<summary>JavaScript (Node 18+ or the browser)</summary>
+
+```js
+const BASE = "https://jmbwyttobedzszswarhd.supabase.co/functions/v1";
+
+const res = await fetch(`${BASE}/procureos/api/pos`, {
+  headers: { "X-API-Key": "demo-key-procureos" },
+});
+if (!res.ok) throw new Error(`${res.status} ${(await res.json()).error}`);
+console.log(await res.json());
+```
+</details>
+
+<details>
+<summary>Automation Anywhere</summary>
+
+In the **REST Web Service** action, set the URL and method, then add a custom header named `X-API-Key`. Keep the key in the Credential Vault and map it into the header instead of typing it into the bot. Use `Content-Type: application/json` for requests with a JSON body.
+</details>
+
+</details>
+
+<details>
+<summary><strong>Option 2: Sign-in token</strong> (what the web pages use)</summary>
+
+Sign in with the same username and password you use on the website to get a token, then send it as a bearer token. Tokens last 12 hours; sign in again to get a new one.
+
+1. **Create an account** (once). `POST /auth/register`. You can also do this on the website's Create account page.
+2. **Sign in.** `POST /auth/login` returns a `token`.
+3. **Call the API** with `Authorization: Bearer <token>`.
+
+<details>
+<summary>curl</summary>
+
+```bash
+BASE=https://jmbwyttobedzszswarhd.supabase.co/functions/v1
+
+# 1. sign in (use jq, or copy the token out of the JSON by hand)
+TOKEN=$(curl -s -X POST "$BASE/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"correct-horse-battery"}' | jq -r .token)
+
+# 2. call any endpoint with it
+curl -H "Authorization: Bearer $TOKEN" "$BASE/clearledger/api/invoices?status=pending"
+```
+</details>
+
+<details>
+<summary>Python</summary>
+
+```python
+import requests
+
+BASE = "https://jmbwyttobedzszswarhd.supabase.co/functions/v1"
+
+login = requests.post(f"{BASE}/auth/login",
+                      json={"username": "alice", "password": "correct-horse-battery"}, timeout=30)
+login.raise_for_status()
+token = login.json()["token"]
+
+resp = requests.get(f"{BASE}/clearledger/api/invoices",
+                    headers={"Authorization": f"Bearer {token}"},
+                    params={"status": "pending"}, timeout=30)
+print(resp.json())
+```
+</details>
+
+<details>
+<summary>JavaScript (Node 18+ or the browser)</summary>
+
+```js
+const BASE = "https://jmbwyttobedzszswarhd.supabase.co/functions/v1";
+
+const login = await fetch(`${BASE}/auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ username: "alice", password: "correct-horse-battery" }),
+});
+const { token } = await login.json();
+
+const res = await fetch(`${BASE}/clearledger/api/invoices?status=pending`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+console.log(await res.json());
+```
+</details>
+
+</details>
+
+<details>
+<summary><strong>Option 3: No credentials</strong> (AuditTrail only)</summary>
+
+AuditTrail's `/api/*` endpoints need no header, matching the original app. That also means anyone who knows the address can call `POST /api/audit-trail` and `PATCH /api/close-status/{id}`.
+
+```bash
+curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor-flags
+```
+</details>
+
+<details>
+<summary><strong>Which credentials each endpoint accepts</strong></summary>
+
+| Endpoints | API key | Sign-in token | If credentials are missing or wrong |
+|---|---|---|---|
+| ClearLedger `/api/*` | yes | yes | `401` `Missing X-API-Key header` or `Invalid API key` |
+| ProcureOS `/api/*` | yes | yes | `401` `Unauthorized` |
+| ReceiptsLog `/api/*` | yes | yes | `401` `Missing X-API-Key header`, or `403` `Invalid API key` |
+| MeridianGL `/api/*` | yes | yes | `401` `Unauthorized` |
+| AuditTrail `/api/*` | not needed | not needed | n/a |
+| `/api/keys` on ClearLedger, ProcureOS, ReceiptsLog | no | **required** | `401` `Sign in required` |
+| `/auth/me` | no | **required** | `401` `Sign in required` |
+| `/auth/register`, `/auth/login` | no | no | n/a |
+
+All errors come back as JSON: `{ "error": "<message>" }`. A request with an expired or invalid bearer token and no valid key is treated as having no credentials.
+</details>
+
+<details>
+<summary><strong>Key management</strong> (<code>/api/keys</code> on ClearLedger, ProcureOS and ReceiptsLog)</summary>
+
+These three endpoints exist on each of the three apps and need a **sign-in token**, so an API key cannot create or revoke other keys. Generated keys start with `cl-` (ClearLedger), `po-` (ProcureOS) or `rl-` (ReceiptsLog).
+
+**`GET /api/keys`** lists keys. The key values themselves are never returned.
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" $BASE/procureos/api/keys
+```
+
+```json
+{ "keys": [ { "id": "d8360dce-1457-43e5-9597-7656243f501c", "label": "AA bot", "created_at": "2026-10-07T10:30:00+00:00" } ] }
+```
+
+**`POST /api/keys`** creates a key. The body is optional; `label` defaults to `Unnamed key` and is cut at 100 characters. The `key` in the response is shown **only once**.
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"label":"AA bot"}' $BASE/procureos/api/keys
+```
+
+```json
+{ "id": "d8360dce-1457-43e5-9597-7656243f501c", "label": "AA bot", "key": "po-Qx3...kL9" }
+```
+
+**`DELETE /api/keys/{id}`** revokes a key immediately and returns `204`. Anything still using it starts getting `401`.
+</details>
+
+<details>
+<summary><strong>Sign-in service</strong> (<code>/auth</code>)</summary>
+
+Base URL: `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/auth`. Usernames are 3 to 32 characters (letters, numbers, dot, dash, underscore) and are not case-sensitive. Passwords are at least 8 characters and at most 72 bytes. No email is collected, so there is no password reset.
+
+**`POST /auth/register`** creates an account. Body: `{ "username": "alice", "password": "correct-horse-battery" }`. An optional `confirm_password` must match `password` if you send it.
+
+- `201` `{ "ok": true }`
+- `400` a message such as `That username is already taken.`, `Usernames are 3-32 characters: letters, numbers, dot, dash or underscore.`, `Passwords must be at least 8 characters and no more than 72 bytes.` or `The two passwords do not match.`
+
+**`POST /auth/login`** returns a token. Same body as register (without `confirm_password`).
+
+```json
+{ "token": "eyJ1IjoiYWxpY2Ui...", "expires_at": 1791000000, "username": "alice" }
+```
+
+`expires_at` is a Unix timestamp in seconds, 12 hours after sign-in.
+
+- `401` `Incorrect username or password.` The same message is used for an unknown username, so it does not reveal which accounts exist.
+- `429` `Too many failed attempts. Try again in 5 minutes.` Five wrong passwords in a row lock the account for five minutes, even if the next attempt is right.
+
+**`GET /auth/me`** checks a token. Send `Authorization: Bearer <token>`. `200` `{ "username": "alice" }`, or `401` `Sign in required`.
+</details>
+
+<details>
+<summary><strong>Troubleshooting authentication errors</strong></summary>
+
+| You see | Usually means | Fix |
+|---|---|---|
+| `401 Missing X-API-Key header` | No `X-API-Key` and no valid bearer token | Add the header |
+| `401 Unauthorized` | Key or token missing, wrong, revoked or expired | Check the value, or sign in again for a new token |
+| `403 Invalid API key` (ReceiptsLog) | The key is not recognised | Use a current key; revoked keys stop working immediately |
+| `401 Sign in required` | A key-management or `/auth/me` call without a token | Sign in and send `Authorization: Bearer <token>` |
+| `429` on login | Five failed attempts | Wait five minutes |
+| Browser shows a CORS error | Usually a wrong URL or a typo in a header name | Check the base URL; the functions allow any origin and the `X-API-Key` and `Authorization` headers |
+</details>
+
+
+---
+
+---
+
+### ClearLedger — Invoice Review Portal
 The automation posts invoice data and mismatch results here. The accountant reviews and acts via the UI.
 
-#### POST /api/invoices
+**Authentication:** every `/api/*` endpoint needs `X-API-Key` (or a sign-in token); see *Authentication* above. Examples below use the demo key `demo-key-clearledger`.
+
+<details>
+<summary><strong>POST</strong> <code>/api/invoices</code></summary>
+
 Submit an extracted invoice with mismatch analysis. The automation calls this after comparing an invoice against PO and GR data.
 
-**No authentication required.**
 
 **Request body**
 ```json
@@ -309,7 +546,7 @@ Submit an extracted invoice with mismatch analysis. The automation calls this af
 
 **curl example**
 ```bash
-curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices \
+curl -H "X-API-Key: demo-key-clearledger" -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices \
   -H "Content-Type: application/json" \
   -d '{
     "invoice_number": "INV-2024-001",
@@ -336,9 +573,11 @@ curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/a
   }'
 ```
 
----
+</details>
 
-#### GET /api/invoices
+<details>
+<summary><strong>GET</strong> <code>/api/invoices</code></summary>
+
 List invoices with optional filters.
 
 **Query parameters**
@@ -353,13 +592,15 @@ List invoices with optional filters.
 **Response** — array of invoice objects.
 
 ```bash
-curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=pending"
-curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=approved&page=1&limit=20"
+curl -H "X-API-Key: demo-key-clearledger" "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=pending"
+curl -H "X-API-Key: demo-key-clearledger" "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices?status=approved&page=1&limit=20"
 ```
 
----
+</details>
 
-#### GET /api/invoices/{id}
+<details>
+<summary><strong>GET</strong> <code>/api/invoices/{id}</code></summary>
+
 Get a single invoice by UUID, including all line items and action history.
 
 **Response**
@@ -390,12 +631,14 @@ Get a single invoice by UUID, including all line items and action history.
 | 404 | Invoice not found |
 
 ```bash
-curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000
+curl -H "X-API-Key: demo-key-clearledger" https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000
 ```
 
----
+</details>
 
-#### PATCH /api/invoices/{id}/action
+<details>
+<summary><strong>PATCH</strong> <code>/api/invoices/{id}/action</code></summary>
+
 Record an accountant's decision on a flagged invoice. Updates invoice status and logs the action.
 
 **Request body**
@@ -423,14 +666,16 @@ Record an accountant's decision on a flagged invoice. Updates invoice status and
 | 404 | Invoice not found. |
 
 ```bash
-curl -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000/action \
+curl -H "X-API-Key: demo-key-clearledger" -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000/action \
   -H "Content-Type: application/json" \
   -d '{"action": "approve", "note": "Variance within acceptable range."}'
 ```
 
----
+</details>
 
-#### GET /api/settings/threshold
+<details>
+<summary><strong>GET</strong> <code>/api/settings/threshold</code></summary>
+
 Get the current matching threshold percentage. The automation should read this before deciding what to flag.
 
 **Response**
@@ -442,12 +687,14 @@ Get the current matching threshold percentage. The automation should read this b
 ```
 
 ```bash
-curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold
+curl -H "X-API-Key: demo-key-clearledger" https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold
 ```
 
----
+</details>
 
-#### PUT /api/settings/threshold
+<details>
+<summary><strong>PUT</strong> <code>/api/settings/threshold</code></summary>
+
 Update the matching threshold.
 
 **Request body**
@@ -462,42 +709,106 @@ Update the matching threshold.
 **Response** — `{"threshold_pct": 3.0, "updated_at": "..."}`
 
 ```bash
-curl -X PUT https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold \
+curl -H "X-API-Key: demo-key-clearledger" -X PUT https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/settings/threshold \
   -H "Content-Type: application/json" \
   -d '{"threshold_pct": 3.0}'
 ```
 
----
+</details>
 
-#### POST /api/invoices/{id}/document
+<details>
+<summary><strong>POST</strong> <code>/api/invoices/{id}/document</code></summary>
 
-Attaches (or replaces) the invoice file. Sent as `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff. Maximum 4 MB. Files are stored in the private Supabase Storage bucket `documents` under `invoices/{invoice_number}/`. Replacing a document deletes the previous file. Fires an `invoice.updated` webhook.
+Attaches (or replaces) the invoice file. Sent as `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff. Maximum 10 MB. Files are stored in the private Supabase Storage bucket `documents` under `invoices/{invoice_number}/`. Replacing a document deletes the previous file. Fires an `invoice.updated` webhook.
 
 ```bash
-curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/{id}/document -F "file=@invoice.pdf"
+curl -H "X-API-Key: demo-key-clearledger" -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/{id}/document -F "file=@invoice.pdf"
 ```
 
 Response `201`: `{ "id": "...", "document_name": "invoice.pdf", "document_path": "invoices/INV-2024-010/ab12cd34_invoice.pdf" }`
 
 Errors: `400` missing/empty file or unsupported type, `404` invoice not found.
 
-#### GET /api/invoices/{id}/document
+</details>
+
+<details>
+<summary><strong>GET</strong> <code>/api/invoices/{id}/document</code></summary>
 
 Returns a signed download URL valid for one hour: `{ "document_name": "invoice.pdf", "url": "https://...", "expires_in": 3600 }`. `404` if no document is attached.
 
-The UI equivalents are `/invoices/new` (create an invoice together with its file) and the "Invoice Document" section on each invoice detail page.
+The Upload Invoice page and the invoice detail page use these same endpoints.
+
+</details>
+
+<details>
+<summary><strong>GET</strong> <code>/api/invoices/lookup/{invoice_number}</code></summary>
+
+Find an invoice's id from its invoice number. Useful when a webhook or another system only knows the number.
+
+```bash
+curl -H "X-API-Key: demo-key-clearledger" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/lookup/INV-2024-001
+```
+
+Response `200`: `{ "id": "550e8400-e29b-41d4-a716-446655440000" }`. `404` `{ "error": "Invoice not found" }`.
+
+</details>
+
+<details>
+<summary><strong>POST</strong> <code>/api/invoices/upload</code></summary>
+
+Create an invoice and attach its file in one request. This is what the Upload Invoice page calls. Sent as `multipart/form-data`.
+
+| Field | Required | Notes |
+|---|---|---|
+| `invoice_number` | yes | Must be new |
+| `vendor_id` | yes | |
+| `vendor_name` | yes | |
+| `po_number` | yes | |
+| `total_amount` | yes | A number |
+| `invoice_date` | no | `YYYY-MM-DD` |
+| `gr_number` | no | |
+| `document` | yes | The file: pdf, png, jpg, jpeg, tif or tiff, up to 10 MB |
+
+```bash
+curl -X POST -H "X-API-Key: demo-key-clearledger" \
+  -F invoice_number=INV-2024-050 -F vendor_id=VEND-001 -F vendor_name="Acme Supplies Ltd" \
+  -F po_number=PO-2024-0099 -F total_amount=1250.00 -F "document=@invoice.pdf" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/upload
+```
+
+Response `201`: the new invoice. It starts with status `pending` and no match result (the page shows "Awaiting Match"). If the file cannot be stored, the new record is removed again. Fires an `invoice.created` webhook.
+
+Errors: `400` with a message such as `Missing required fields: ...`, `Please choose an invoice file to upload.`, `Total amount must be a number.`, `Invoice INV-2024-050 already exists.` or `Unsupported file type. Allowed: ...`.
+
+</details>
+
+<details>
+<summary><strong>GET</strong> <code>/api/invoices/{id}/document/download</code></summary>
+
+Returns the invoice file itself rather than a link, with `Content-Disposition: attachment; filename="<original name>"`.
+
+```bash
+curl -OJ -H "X-API-Key: demo-key-clearledger" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/{id}/document/download
+```
+
+Errors: `404` `Invoice not found` or `No document attached to this invoice`.
+
+</details>
 
 ---
 
 ### ProcureOS — Purchase Order System
-
 Holds PO data. The automation queries this to retrieve PO details for matching.
 
 **Authentication:** All `/api/*` routes require `X-API-Key: demo-key-procureos` header.
 
 ---
 
-#### GET /api/po/{po_number}
+<details>
+<summary><strong>GET</strong> <code>/api/po/{po_number}</code></summary>
+
 **Primary automation endpoint.** Retrieve a Purchase Order by PO number, including all line items.
 
 **Response**
@@ -535,9 +846,11 @@ curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/po/PO-2
   -H "X-API-Key: demo-key-procureos"
 ```
 
----
+</details>
 
-#### GET /api/pos
+<details>
+<summary><strong>GET</strong> <code>/api/pos</code></summary>
+
 List Purchase Orders with optional filters.
 
 **Query parameters**
@@ -564,9 +877,11 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos?st
   -H "X-API-Key: demo-key-procureos"
 ```
 
----
+</details>
 
-#### POST /api/pos
+<details>
+<summary><strong>POST</strong> <code>/api/pos</code></summary>
+
 Create a Purchase Order via API.
 
 **Request body**
@@ -606,9 +921,11 @@ curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api
   -d '{"po_number":"PO-2024-0100","vendor_id":"VEND-001","vendor_name":"Acme Supplies","status":"open","line_items":[{"item_code":"DESK-001","description":"Standing Desks","quantity":5,"unit_price":450.00}]}'
 ```
 
----
+</details>
 
-#### PUT /api/pos/{po_number}
+<details>
+<summary><strong>PUT</strong> <code>/api/pos/{po_number}</code></summary>
+
 Full replace of a PO. Replaces all line items.
 
 **Request body** — same shape as POST. `line_items` replaces existing lines entirely.
@@ -618,9 +935,11 @@ Full replace of a PO. Replaces all line items.
 | 200 | Updated |
 | 404 | PO not found |
 
----
+</details>
 
-#### DELETE /api/pos/{po_number}
+<details>
+<summary><strong>DELETE</strong> <code>/api/pos/{po_number}</code></summary>
+
 Delete a PO and all its line items.
 
 | Code | Meaning |
@@ -633,9 +952,10 @@ curl -X DELETE https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/a
   -H "X-API-Key: demo-key-procureos"
 ```
 
----
+</details>
 
-#### Purchase justification fields
+<details>
+<summary><strong>Purchase justification fields</strong></summary>
 
 `POST /api/pos` and `PUT /api/pos/{po_number}` accept these optional fields, and every PO response returns them under `justification`:
 
@@ -651,13 +971,35 @@ curl -X DELETE https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/a
 
 The web form at `/po/new` requires all seven answers. The API leaves them optional so existing automations keep working.
 
-#### POST /api/pos/{po_number}/document
+</details>
 
-Requires `X-API-Key`. Attaches (or replaces) a supporting file such as a quote or contract. `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff, doc, docx, xls, xlsx. Maximum 4 MB. Stored under `purchase-orders/{po_number}/` in the `documents` bucket. Response `201`: `{ "po_number": "...", "document_name": "...", "document_path": "..." }`.
+<details>
+<summary><strong>POST</strong> <code>/api/pos/{po_number}/document</code></summary>
 
-#### GET /api/pos/{po_number}/document
+Requires `X-API-Key`. Attaches (or replaces) a supporting file such as a quote or contract. `multipart/form-data` with a `file` field. Allowed types: pdf, png, jpg, jpeg, tif, tiff, doc, docx, xls, xlsx. Maximum 10 MB. Stored under `purchase-orders/{po_number}/` in the `documents` bucket. Response `201`: `{ "po_number": "...", "document_name": "...", "document_path": "..." }`.
+
+</details>
+
+<details>
+<summary><strong>GET</strong> <code>/api/pos/{po_number}/document</code></summary>
 
 Requires `X-API-Key`. Returns `{ "document_name": "...", "url": "<signed URL>", "expires_in": 3600 }`, or `404` if nothing is attached. The PO response from `GET /api/po/{po_number}` also includes `document_name`.
+
+</details>
+
+<details>
+<summary><strong>GET</strong> <code>/api/pos/{po_number}/document/download</code></summary>
+
+Returns the purchase order's attached file itself rather than a link, with `Content-Disposition: attachment; filename="<original name>"`.
+
+```bash
+curl -OJ -H "X-API-Key: demo-key-procureos" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/procureos/api/pos/PO-2024-0099/document/download
+```
+
+Errors: `404` `Not found` or `No document attached to this purchase order`.
+
+</details>
 
 ---
 
@@ -669,7 +1011,9 @@ Holds GR (goods received) records. The automation queries this to retrieve deliv
 
 ---
 
-#### GET /api/gr/by-po/{po_number}
+<details>
+<summary><strong>GET</strong> <code>/api/gr/by-po/{po_number}</code></summary>
+
 **Primary automation endpoint.** Get all GR records for a PO. Returns an array — a PO may have multiple receipts (partial deliveries). Returns an empty array if no GR exists for the PO.
 
 **Response**
@@ -709,9 +1053,11 @@ curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/by
   -H "X-API-Key: demo-key-receipthub"
 ```
 
----
+</details>
 
-#### GET /api/gr/{gr_number}
+<details>
+<summary><strong>GET</strong> <code>/api/gr/{gr_number}</code></summary>
+
 Get a single GR record by GR number.
 
 **Response** — single GR object (same shape as one element of the `by-po` array).
@@ -726,9 +1072,11 @@ curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/GR
   -H "X-API-Key: demo-key-receipthub"
 ```
 
----
+</details>
 
-#### GET /api/grs
+<details>
+<summary><strong>GET</strong> <code>/api/grs</code></summary>
+
 List GR records with optional filters.
 
 **Query parameters**
@@ -755,9 +1103,11 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/grs?
   -H "X-API-Key: demo-key-receipthub"
 ```
 
----
+</details>
 
-#### POST /api/grs
+<details>
+<summary><strong>POST</strong> <code>/api/grs</code></summary>
+
 Create a GR record via API.
 
 **Required fields:** `gr_number`, `po_number`, `vendor_id`, `vendor_name`, `received_date`, `received_by`, `status`
@@ -795,9 +1145,11 @@ Create a GR record via API.
 | 201 | Created |
 | 400 | Missing required fields |
 
----
+</details>
 
-#### PUT /api/grs/{gr_number}
+<details>
+<summary><strong>PUT</strong> <code>/api/grs/{gr_number}</code></summary>
+
 Full replace of a GR record. If `line_items` is included, replaces all lines.
 
 | Code | Meaning |
@@ -805,15 +1157,19 @@ Full replace of a GR record. If `line_items` is included, replaces all lines.
 | 200 | Updated |
 | 404 | Not found |
 
----
+</details>
 
-#### DELETE /api/grs/{gr_number}
+<details>
+<summary><strong>DELETE</strong> <code>/api/grs/{gr_number}</code></summary>
+
 Delete a GR record and all its line items.
 
 | Code | Meaning |
 |---|---|
 | 204 | Deleted |
 | 404 | Not found |
+
+</details>
 
 ---
 
@@ -825,7 +1181,9 @@ Read-only viewer over GL close data for three subsidiaries (`A`, `B`, `C`). No m
 
 ---
 
-#### GET /api/gl/accounts
+<details>
+<summary><strong>GET</strong> <code>/api/gl/accounts</code></summary>
+
 List GL accounts (chart of accounts per subsidiary).
 
 **Query parameters**
@@ -839,9 +1197,11 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/ac
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
----
+</details>
 
-#### GET /api/gl/balances
+<details>
+<summary><strong>GET</strong> <code>/api/gl/balances</code></summary>
+
 List GL-vs-sub-ledger balances, joined with account info (`subsidiary`, `account_code`, `account_name`, `account_type`).
 
 **Query parameters**
@@ -858,9 +1218,11 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/ba
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
----
+</details>
 
-#### GET /api/gl/intercompany
+<details>
+<summary><strong>GET</strong> <code>/api/gl/intercompany</code></summary>
+
 List intercompany transaction log entries. Matches on either `subsidiary_from` or `subsidiary_to` when `subsidiary` is given.
 
 **Query parameters**
@@ -875,9 +1237,11 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/in
   -H "X-API-Key: demo-key-meridiangl"
 ```
 
----
+</details>
 
-#### GET /api/gl/accruals
+<details>
+<summary><strong>GET</strong> <code>/api/gl/accruals</code></summary>
+
 List accruals (estimated vs. actual per subsidiary/period).
 
 **Query parameters**
@@ -896,6 +1260,8 @@ curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/meridiangl/api/gl/ac
 
 This app is read-only by design — no POST/PUT/DELETE endpoints exist.
 
+</details>
+
 ---
 
 ### AuditTrail — Fraud Flag + Close Status Dashboard (Hard tier)
@@ -904,7 +1270,9 @@ Forensic dashboard for a flagged vendor (bank-detail mismatch), a flux analysis 
 
 ---
 
-#### GET /api/vendor-flags
+<details>
+<summary><strong>GET</strong> <code>/api/vendor-flags</code></summary>
+
 List flagged vendors.
 
 **Query parameters**
@@ -917,9 +1285,11 @@ List flagged vendors.
 curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor-flags?status=open"
 ```
 
----
+</details>
 
-#### GET /api/vendor-flags/{id}
+<details>
+<summary><strong>GET</strong> <code>/api/vendor-flags/{id}</code></summary>
+
 Get a single vendor flag, including `registered_bank_details` vs. `submitted_bank_details`.
 
 | Code | Meaning |
@@ -931,9 +1301,11 @@ Get a single vendor flag, including `registered_bank_details` vs. `submitted_ban
 curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor-flags/<uuid>
 ```
 
----
+</details>
 
-#### GET /api/flux-analysis
+<details>
+<summary><strong>GET</strong> <code>/api/flux-analysis</code></summary>
+
 List flux analysis rows (actual vs. prior quarter vs. budget).
 
 **Query parameters**
@@ -947,9 +1319,11 @@ List flux analysis rows (actual vs. prior quarter vs. budget).
 curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/flux-analysis?status=unexplained"
 ```
 
----
+</details>
 
-#### GET /api/audit-trail
+<details>
+<summary><strong>GET</strong> <code>/api/audit-trail</code></summary>
+
 List audit trail entries, most recent first. `related_reference` ties an entry back to an invoice, PO, GR, or vendor flag.
 
 **Query parameters**
@@ -962,9 +1336,11 @@ List audit trail entries, most recent first. `related_reference` ties an entry b
 curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/audit-trail?related_reference=INV-2024-001"
 ```
 
----
+</details>
 
-#### POST /api/audit-trail
+<details>
+<summary><strong>POST</strong> <code>/api/audit-trail</code></summary>
+
 **Primary automation endpoint.** The automation posts here every time an agent checks something and makes a decision.
 
 **Request body**
@@ -992,9 +1368,11 @@ curl -X POST https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/ap
   -d '{"action_checked":"Vendor bank details vs. ERP registration","decision":"Escalated — mismatch found","related_reference":"INV-2024-001"}'
 ```
 
----
+</details>
 
-#### GET /api/close-status
+<details>
+<summary><strong>GET</strong> <code>/api/close-status</code></summary>
+
 List close status items (the open-items board).
 
 **Query parameters**
@@ -1008,9 +1386,11 @@ List close status items (the open-items board).
 curl "https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/close-status?status=escalated"
 ```
 
----
+</details>
 
-#### PATCH /api/close-status/{id}
+<details>
+<summary><strong>PATCH</strong> <code>/api/close-status/{id}</code></summary>
+
 Update a close item's `status`, `owner`, and/or `note` (any subset).
 
 **Request body**
@@ -1032,6 +1412,8 @@ curl -X PATCH https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/a
   -H "Content-Type: application/json" \
   -d '{"status": "cleared"}'
 ```
+
+</details>
 
 ---
 
@@ -1068,6 +1450,8 @@ Delivery is a single attempt with a 3 second timeout, sent inline before the API
 
 ---
 
+---
+
 ### Automation Workflow — Typical Call Sequence
 
 The sequence the automation follows when processing an invoice (Easy tier):
@@ -1092,6 +1476,8 @@ The sequence the automation follows when processing an invoice (Easy tier):
 ```
 
 For the Medium tier, the automation additionally reads GL/intercompany/accrual data from MeridianGL (`GET /api/gl/*`) to reconcile the close. For the Hard tier, it additionally checks vendor bank details and flux variances, then logs every check via `POST /api/audit-trail` and updates `PATCH /api/close-status/{id}` on AuditTrail as items get resolved.
+
+---
 
 ---
 
