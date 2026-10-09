@@ -1,0 +1,21 @@
+project_id = "jmbwyttobedzszswarhd"
+
+# The functions authenticate requests themselves (X-API-Key or a signed login token), so the
+# gateway's Supabase JWT check must stay off or every request is rejected before reaching them.
+[functions.auth]
+verify_jwt = false
+
+[functions.audittrail]
+verify_jwt = false
+
+[functions.clearledger]
+verify_jwt = false
+
+[functions.meridiangl]
+verify_jwt = false
+
+[functions.procureos]
+verify_jwt = false
+
+[functions.receiptslog]
+verify_jwt = false

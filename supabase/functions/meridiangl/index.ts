@@ -6,8 +6,8 @@ import { authenticate, type KeyAuthConfig } from '../_shared/auth.ts';
 const KEY_AUTH: KeyAuthConfig = {
   table: 'gl_api_keys',
   demoHash: '13a70133e81abd62377bc38332fc4507ff5f8ef9d56e309611f59b6546af0fb4',
-  missing: { message: 'Unauthorized', status: 401 },
-  invalid: { message: 'Unauthorized', status: 401 },
+  missing: { message: 'Missing X-API-Key header', status: 401 },
+  invalid: { message: 'Invalid API key', status: 401 },
 };
 
 const SUBSIDIARIES = ['A', 'B', 'C'];

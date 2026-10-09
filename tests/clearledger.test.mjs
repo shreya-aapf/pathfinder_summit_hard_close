@@ -309,3 +309,42 @@ test('webhook-firing operations succeed whether or not a webhook receiver is rea
   const history = (await call(FN, `/api/invoices/${id}`, KEY)).data.actions;
   assert.equal(history.length, 2);
 });
+
+test('currency defaults to USD, is stored upper-case and is validated', async () => {
+  const usd = await createInvoice();
+  assert.equal((await call(FN, `/api/invoices/${usd.id}`, KEY)).data.currency, 'USD');
+  const eur = await createInvoice({ currency: 'eur' });
+  assert.equal((await call(FN, `/api/invoices/${eur.id}`, KEY)).data.currency, 'EUR');
+  const bad = await call(FN, '/api/invoices', { method: 'POST', json: invoiceBody(unique('TEST'), { currency: 'EURO' }), ...KEY });
+  assert.equal(bad.status, 400);
+
+  const up = await call(FN, '/api/invoices/upload', { method: 'POST', form: uploadForm(unique('TEST'), { currency: 'INR' }), ...KEY });
+  assert.equal(up.status, 201);
+  assert.equal(up.data.currency, 'INR');
+});
+
+test('PATCH /api/invoices/{id} corrects fields and line items', async () => {
+  const { id } = await createInvoice({
+    line_items: [{ line_number: 1, description: 'Widget', invoice_qty: 10, invoice_unit_price: 125, po_qty: 10, po_unit_price: 120, gr_qty: 10, mismatch_type: 'price_variance', variance_amount: 50 }],
+  });
+  const patch = await call(FN, `/api/invoices/${id}`, {
+    method: 'PATCH', ...KEY,
+    json: { currency: 'gbp', total_amount: 99.5, variance_amount: 0, line_items: [{ line_number: 1, invoice_unit_price: 120, mismatch_type: 'ok', variance_amount: 0 }, { line_number: 2, description: 'Extra' }] },
+  });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.data.currency, 'GBP');
+  assert.equal(Number(patch.data.total_amount), 99.5);
+  assert.equal(patch.data.vendor_name, 'Test Vendor Ltd');
+  assert.equal(patch.data.line_items.length, 2);
+  assert.equal(patch.data.line_items[0].mismatch_type, 'ok');
+  assert.equal(patch.data.line_items[0].description, 'Widget');
+
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: {}, ...KEY })).status, 400);
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: { unknown: 1 }, ...KEY })).status, 400);
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: { total_amount: 'abc' }, ...KEY })).status, 400);
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: { currency: 'X' }, ...KEY })).status, 400);
+  const other = await createInvoice();
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: { invoice_number: other.number }, ...KEY })).status, 409);
+  assert.equal((await call(FN, '/api/invoices/00000000-0000-0000-0000-000000000000', { method: 'PATCH', json: { currency: 'USD' }, ...KEY })).status, 404);
+  assert.equal((await call(FN, `/api/invoices/${id}`, { method: 'PATCH', json: { currency: 'USD' } })).status, 401);
+});

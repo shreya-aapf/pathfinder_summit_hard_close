@@ -15,6 +15,13 @@ export function saveSession({ token, expires_at, username }) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, expires_at, username }));
 }
 
+// Tokens last 7 days; once less than half is left, the next API call swaps in a fresh one.
+const REFRESH_BELOW_SECONDS = 3.5 * 24 * 3600;
+
+export function needsRefresh(session) {
+  return session.expires_at - Date.now() / 1000 < REFRESH_BELOW_SECONDS;
+}
+
 export function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
 }

@@ -255,7 +255,7 @@ Every endpoint needs credentials except AuditTrail's. There are three ways to au
 | Option | Best for | How you send it | Lasts |
 |---|---|---|---|
 | **1. API key** | Automation, scripts, Automation Anywhere bots | `X-API-Key: <key>` header | Until you revoke it |
-| **2. Sign-in token** | The web pages, quick manual testing | `Authorization: Bearer <token>` header | 12 hours |
+| **2. Sign-in token** | The web pages, quick manual testing | `Authorization: Bearer <token>` header | 7 days, renewable |
 | **3. No credentials** | AuditTrail only | nothing | n/a |
 
 The apps accept either option 1 or option 2 on the same endpoints, so use whichever is easier. Key management (`/api/keys`) is the one exception and needs option 2.
@@ -271,6 +271,8 @@ The apps accept either option 1 or option 2 on the same endpoints, so use whiche
 | ProcureOS | `demo-key-procureos` |
 | ReceiptsLog | `demo-key-receipthub` |
 | MeridianGL | `demo-key-meridiangl` |
+
+**One key for all four apps.** A single universal key works in the `X-API-Key` header on every ClearLedger, ProcureOS, ReceiptsLog and MeridianGL endpoint. It is shared privately, not published here. It cannot manage keys (`/api/keys` needs a sign-in token).
 
 **Create your own key, from the web page.** Sign in, open the app's **API Keys** page (`clearledger/api-keys.html`, `procureos/api-keys.html` or `receiptslog/api-keys.html`), enter a label and press **Generate**. Copy the key straight away: it is shown once and only a hash is stored. Revoke it from the same page.
 
@@ -327,7 +329,7 @@ In the **REST Web Service** action, set the URL and method, then add a custom he
 <details>
 <summary><strong>Option 2: Sign-in token</strong> (what the web pages use)</summary>
 
-Sign in with the same username and password you use on the website to get a token, then send it as a bearer token. Tokens last 12 hours; sign in again to get a new one.
+Sign in with the same username and password you use on the website to get a token, then send it as a bearer token. Tokens last 7 days; call `POST /auth/refresh` before one expires to get a new one.
 
 1. **Create an account** (once). `POST /auth/register`. You can also do this on the website's Create account page.
 2. **Sign in.** `POST /auth/login` returns a `token`.
@@ -407,9 +409,9 @@ curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/audittrail/api/vendor
 | Endpoints | API key | Sign-in token | If credentials are missing or wrong |
 |---|---|---|---|
 | ClearLedger `/api/*` | yes | yes | `401` `Missing X-API-Key header` or `Invalid API key` |
-| ProcureOS `/api/*` | yes | yes | `401` `Unauthorized` |
-| ReceiptsLog `/api/*` | yes | yes | `401` `Missing X-API-Key header`, or `403` `Invalid API key` |
-| MeridianGL `/api/*` | yes | yes | `401` `Unauthorized` |
+| ProcureOS `/api/*` | yes | yes | `401` `Missing X-API-Key header` or `Invalid API key` |
+| ReceiptsLog `/api/*` | yes | yes | `401` `Missing X-API-Key header` or `Invalid API key` |
+| MeridianGL `/api/*` | yes | yes | `401` `Missing X-API-Key header` or `Invalid API key` |
 | AuditTrail `/api/*` | not needed | not needed | n/a |
 | `/api/keys` on ClearLedger, ProcureOS, ReceiptsLog | no | **required** | `401` `Sign in required` |
 | `/auth/me` | no | **required** | `401` `Sign in required` |
@@ -463,10 +465,12 @@ Base URL: `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/auth`. Username
 { "token": "eyJ1IjoiYWxpY2Ui...", "expires_at": 1791000000, "username": "alice" }
 ```
 
-`expires_at` is a Unix timestamp in seconds, 12 hours after sign-in.
+`expires_at` is a Unix timestamp in seconds, 7 days after sign-in. The web pages call `/auth/refresh` automatically once half of that time has passed, so people who keep using the site stay signed in.
 
 - `401` `Incorrect username or password.` The same message is used for an unknown username, so it does not reveal which accounts exist.
 - `429` `Too many failed attempts. Try again in 5 minutes.` Five wrong passwords in a row lock the account for five minutes, even if the next attempt is right.
+
+**`POST /auth/refresh`** swaps a valid token for a new one with a full 7 days. Send `Authorization: Bearer <token>`. `200` returns the same shape as login, or `401` `Sign in required` if the token has expired.
 
 **`GET /auth/me`** checks a token. Send `Authorization: Bearer <token>`. `200` `{ "username": "alice" }`, or `401` `Sign in required`.
 </details>
@@ -477,8 +481,7 @@ Base URL: `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/auth`. Username
 | You see | Usually means | Fix |
 |---|---|---|
 | `401 Missing X-API-Key header` | No `X-API-Key` and no valid bearer token | Add the header |
-| `401 Unauthorized` | Key or token missing, wrong, revoked or expired | Check the value, or sign in again for a new token |
-| `403 Invalid API key` (ReceiptsLog) | The key is not recognised | Use a current key; revoked keys stop working immediately |
+| `401 Invalid API key` | Key not recognised or revoked, or the bearer token is expired | Check the value, or sign in again for a new token |
 | `401 Sign in required` | A key-management or `/auth/me` call without a token | Sign in and send `Authorization: Bearer <token>` |
 | `429` on login | Five failed attempts | Wait five minutes |
 | Browser shows a CORS error | Usually a wrong URL or a typo in a header name | Check the base URL; the functions allow any origin and the `X-API-Key` and `Authorization` headers |
@@ -493,6 +496,36 @@ Base URL: `https://jmbwyttobedzszswarhd.supabase.co/functions/v1/auth`. Username
 The automation posts invoice data and mismatch results here. The accountant reviews and acts via the UI.
 
 **Authentication:** every `/api/*` endpoint needs `X-API-Key` (or a sign-in token); see *Authentication* above. Examples below use the demo key `demo-key-clearledger`.
+
+<details>
+<summary><strong>POST</strong> <code>/api/invoices/upload</code></summary>
+
+Create an invoice and attach its file in one request. This is what the Upload Invoice page calls. Sent as `multipart/form-data`.
+
+| Field | Required | Notes |
+|---|---|---|
+| `invoice_number` | yes | Must be new |
+| `vendor_id` | yes | |
+| `vendor_name` | yes | |
+| `po_number` | yes | |
+| `total_amount` | yes | A number |
+| `invoice_date` | no | `YYYY-MM-DD` |
+| `gr_number` | no | |
+| `currency` | no | Three-letter ISO 4217 code such as `USD`, `EUR`, `INR`. Defaults to `USD` |
+| `document` | yes | The file: pdf, png, jpg, jpeg, tif or tiff, up to 10 MB |
+
+```bash
+curl -X POST -H "X-API-Key: demo-key-clearledger" \
+  -F invoice_number=INV-2024-050 -F vendor_id=VEND-001 -F vendor_name="Acme Supplies Ltd" \
+  -F po_number=PO-2024-0099 -F total_amount=1250.00 -F currency=EUR -F "document=@invoice.pdf" \
+  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/upload
+```
+
+Response `201`: the new invoice. It starts with status `pending` and no match result (the page shows "Awaiting Match"). If the file cannot be stored, the new record is removed again. Fires an `invoice.created` webhook.
+
+Errors: `400` with a message such as `Missing required fields: ...`, `Please choose an invoice file to upload.`, `Total amount must be a number.`, `Currency must be a three-letter code such as USD, EUR or INR.`, `Invoice INV-2024-050 already exists.` or `Unsupported file type. Allowed: ...`.
+
+</details>
 
 <details>
 <summary><strong>POST</strong> <code>/api/invoices</code></summary>
@@ -510,6 +543,7 @@ Submit an extracted invoice with mismatch analysis. The automation calls this af
   "po_number": "PO-2024-0099",
   "gr_number": "GR-2024-0044",
   "total_amount": 12450.00,
+  "currency": "USD",
   "match_status": "mismatch",
   "variance_amount": 150.00,
   "variance_pct": 1.2,
@@ -531,6 +565,8 @@ Submit an extracted invoice with mismatch analysis. The automation calls this af
 
 **Required fields:** `invoice_number`, `vendor_id`, `vendor_name`, `invoice_date`, `po_number`, `total_amount`, `match_status`
 
+**Optional:** `currency` is a three-letter ISO 4217 code (`USD`, `EUR`, `INR`, ...). It defaults to `USD`.
+
 **`match_status` values:** `mismatch` | `partial_match`
 
 **`mismatch_type` values (per line):** `price_variance` | `qty_mismatch` | `missing_gr` | `ok`
@@ -540,7 +576,7 @@ Submit an extracted invoice with mismatch analysis. The automation calls this af
 | Code | Meaning |
 |---|---|
 | 201 | Created. Body: `{"id": "<uuid>", "invoice_number": "INV-2024-001"}` |
-| 400 | Missing required fields. Body: `{"error": "Missing required fields: ..."}` |
+| 400 | Missing required fields, or invalid `currency`. Body: `{"error": "Missing required fields: ..."}` |
 | 409 | Duplicate. Invoice number already exists. |
 | 500 | Server / database error. |
 
@@ -633,6 +669,38 @@ Get a single invoice by UUID, including all line items and action history.
 ```bash
 curl -H "X-API-Key: demo-key-clearledger" https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000
 ```
+
+</details>
+
+<details>
+<summary><strong>PATCH</strong> <code>/api/invoices/{id}</code></summary>
+
+Correct an existing invoice, for example after a mismatch has been investigated. Send only the fields that change. Fires an `invoice.updated` webhook.
+
+**Updatable fields:** `invoice_number`, `vendor_id`, `vendor_name`, `invoice_date`, `po_number`, `gr_number`, `total_amount`, `currency`, `match_status` (`mismatch`, `partial_match` or `null`), `variance_amount`, `variance_pct`. `gr_number` and `invoice_date` accept `null` to clear them.
+
+**Line items:** `line_items` is a list of objects, each with an integer `line_number`. A line that already exists is updated with only the fields you send; a new `line_number` adds a line. Other lines are left alone. Line fields: `description`, `invoice_qty`, `invoice_unit_price`, `po_qty`, `po_unit_price`, `gr_qty`, `variance_amount`, `mismatch_type` (`price_variance`, `qty_mismatch`, `missing_gr`, `ok`).
+
+```bash
+curl -X PATCH -H "X-API-Key: demo-key-clearledger" -H "Content-Type: application/json"   https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/550e8400-e29b-41d4-a716-446655440000   -d '{
+    "currency": "EUR",
+    "total_amount": 12300.00,
+    "variance_amount": 0,
+    "variance_pct": 0,
+    "line_items": [{ "line_number": 1, "invoice_unit_price": 120.00, "mismatch_type": "ok", "variance_amount": 0 }]
+  }'
+```
+
+Response `200`: the updated invoice, including its `line_items`.
+
+| Code | Meaning |
+|---|---|
+| 200 | Updated |
+| 400 | Empty body, no updatable fields, or an invalid value (for example a non-numeric `total_amount`, a bad `currency` or `mismatch_type`) |
+| 404 | Invoice not found |
+| 409 | New `invoice_number` already belongs to another invoice |
+
+Status changes (approve, contact vendor, escalate) use `PATCH /api/invoices/{id}/action` instead.
 
 </details>
 
@@ -755,35 +823,6 @@ Response `200`: `{ "id": "550e8400-e29b-41d4-a716-446655440000" }`. `404` `{ "er
 </details>
 
 <details>
-<summary><strong>POST</strong> <code>/api/invoices/upload</code></summary>
-
-Create an invoice and attach its file in one request. This is what the Upload Invoice page calls. Sent as `multipart/form-data`.
-
-| Field | Required | Notes |
-|---|---|---|
-| `invoice_number` | yes | Must be new |
-| `vendor_id` | yes | |
-| `vendor_name` | yes | |
-| `po_number` | yes | |
-| `total_amount` | yes | A number |
-| `invoice_date` | no | `YYYY-MM-DD` |
-| `gr_number` | no | |
-| `document` | yes | The file: pdf, png, jpg, jpeg, tif or tiff, up to 10 MB |
-
-```bash
-curl -X POST -H "X-API-Key: demo-key-clearledger" \
-  -F invoice_number=INV-2024-050 -F vendor_id=VEND-001 -F vendor_name="Acme Supplies Ltd" \
-  -F po_number=PO-2024-0099 -F total_amount=1250.00 -F "document=@invoice.pdf" \
-  https://jmbwyttobedzszswarhd.supabase.co/functions/v1/clearledger/api/invoices/upload
-```
-
-Response `201`: the new invoice. It starts with status `pending` and no match result (the page shows "Awaiting Match"). If the file cannot be stored, the new record is removed again. Fires an `invoice.created` webhook.
-
-Errors: `400` with a message such as `Missing required fields: ...`, `Please choose an invoice file to upload.`, `Total amount must be a number.`, `Invoice INV-2024-050 already exists.` or `Unsupported file type. Allowed: ...`.
-
-</details>
-
-<details>
 <summary><strong>GET</strong> <code>/api/invoices/{id}/document/download</code></summary>
 
 Returns the invoice file itself rather than a link, with `Content-Disposition: attachment; filename="<original name>"`.
@@ -838,7 +877,7 @@ Holds PO data. The automation queries this to retrieve PO details for matching.
 | Code | Meaning |
 |---|---|
 | 200 | PO found |
-| 401 | Missing API key |
+| 401 | Missing or invalid API key |
 | 404 | PO not found |
 
 ```bash
@@ -1045,8 +1084,7 @@ Holds GR (goods received) records. The automation queries this to retrieve deliv
 | Code | Meaning |
 |---|---|
 | 200 | Array of GR records (may be empty) |
-| 401 | Missing API key |
-| 403 | Invalid API key |
+| 401 | Missing or invalid API key |
 
 ```bash
 curl https://jmbwyttobedzszswarhd.supabase.co/functions/v1/receiptslog/api/gr/by-po/PO-2024-0099 \

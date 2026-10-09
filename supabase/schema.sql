@@ -691,6 +691,7 @@ CREATE POLICY "documents anon delete" ON storage.objects
 
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS document_path TEXT;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS document_name TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'USD';
 
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS document_path TEXT;
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS document_name TEXT;

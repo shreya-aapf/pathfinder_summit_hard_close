@@ -8,16 +8,16 @@ after(purgeTestUsers);
 
 // These tests assert against the known seed data in the shared project (read-only app).
 
-test('API requires a key (401 Unauthorized)', async () => {
+test('API requires a key (401 Missing X-API-Key header)', async () => {
   const res = await call('meridiangl', '/api/gl/accounts');
   assert.equal(res.status, 401);
-  assert.equal(res.data.error, 'Unauthorized');
+  assert.equal(res.data.error, 'Missing X-API-Key header');
 });
 
-test('API rejects a wrong key (401 Unauthorized)', async () => {
+test('API rejects a wrong key (401 Invalid API key)', async () => {
   const res = await call('meridiangl', '/api/gl/accounts', { apiKey: 'wrong-key' });
   assert.equal(res.status, 401);
-  assert.equal(res.data.error, 'Unauthorized');
+  assert.equal(res.data.error, 'Invalid API key');
 });
 
 test('every API route is protected', async () => {

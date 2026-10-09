@@ -1,5 +1,5 @@
 import { api } from '../assets/js/api.js';
-import { esc, param } from '../assets/js/ui.js';
+import { esc, formatMoney, param } from '../assets/js/ui.js';
 import { flash, mountLayout } from './layout.js';
 import { url } from '../assets/js/site.js';
 
@@ -67,7 +67,7 @@ function render(all) {
           <div class="vendor-id">${esc(inv.vendor_id)}</div>
         </td>
         <td class="cell-mono">${esc(inv.po_number)}</td>
-        <td class="cell-amount">$${Number(inv.total_amount || 0).toFixed(2)}</td>
+        <td class="cell-amount">${esc(formatMoney(inv.total_amount, inv.currency))}</td>
         <td><span class="variance-pct ${vp > 2.5 ? 'variance-pct--high' : 'variance-pct--low'}">${vp.toFixed(2)}%</span></td>
         <td><span class="badge badge--${mClass}">${esc(mLabel)}</span></td>
         <td><span class="badge badge--${sClass}">${esc(sLabel)}</span></td>

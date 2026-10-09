@@ -1,6 +1,6 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { call, purgeTestUsers, trackUser } from './helpers.mjs';
+import { call, purgeTestUsers, trackUser, userToken } from './helpers.mjs';
 
 after(purgeTestUsers);
 
@@ -74,4 +74,14 @@ test('CORS preflight, 404 and 405', async () => {
   assert.equal(pre.headers.get('access-control-allow-origin'), '*');
   assert.equal((await call('auth', '/nope')).status, 404);
   assert.equal((await call('auth', '/login')).status, 405);
+});
+
+test('/refresh swaps a valid token for a new one and rejects bad tokens', async () => {
+  const token = await userToken();
+  const res = await call('auth', '/refresh', { method: 'POST', token });
+  assert.equal(res.status, 200);
+  assert.ok(res.data.token && res.data.expires_at > Date.now() / 1000 + 6 * 24 * 3600);
+  assert.equal((await call('auth', '/me', { token: res.data.token })).status, 200);
+  assert.equal((await call('auth', '/refresh', { method: 'POST' })).status, 401);
+  assert.equal((await call('auth', '/refresh', { method: 'POST', token: 'abc.def' })).status, 401);
 });

@@ -9,7 +9,7 @@ const KEY_AUTH: KeyAuthConfig = {
   table: 'gr_api_keys',
   demoHash: 'f455355415937c4bb9db319ccef142b3d9b707a754ad93f30983c77538e84cf2',
   missing: { message: 'Missing X-API-Key header', status: 401 },
-  invalid: { message: 'Invalid API key', status: 403 },
+  invalid: { message: 'Invalid API key', status: 401 },
 };
 
 const REQUIRED = ['gr_number', 'po_number', 'vendor_id', 'vendor_name', 'received_date', 'received_by', 'status'];

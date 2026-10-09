@@ -1,5 +1,5 @@
 import { API_BASE } from './config.js';
-import { clearSession, getSession, redirectToLogin } from './auth.js';
+import { clearSession, getSession, needsRefresh, redirectToLogin, saveSession } from './auth.js';
 
 export class ApiError extends Error {
   constructor(status, message) {
@@ -11,9 +11,25 @@ export class ApiError extends Error {
 // api('procureos', '/api/pos', { method: 'POST', json: {...} })
 // Sends the login token, returns parsed JSON (or a Blob for files, or null for 204) and throws
 // ApiError for non-2xx responses. A 401 on an authenticated call sends the user to the login page.
+let refreshing = null;
+
+// Keeps a signed-in user signed in: trades the current token for a new one when it is half used.
+// Failures are ignored; the current token still works until it expires.
+async function refreshSession(session) {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', headers: { Authorization: `Bearer ${session.token}` } });
+    if (res.ok) saveSession(await res.json());
+  } catch { /* try again on a later call */ }
+}
+
 export async function api(fn, path, { method = 'GET', json, form, auth = true } = {}) {
   const headers = {};
-  const session = auth ? getSession() : null;
+  let session = auth ? getSession() : null;
+  if (session && needsRefresh(session)) {
+    refreshing ??= refreshSession(session).finally(() => { refreshing = null; });
+    await refreshing;
+    session = getSession();
+  }
   if (session) headers.Authorization = `Bearer ${session.token}`;
 
   let body;

@@ -5,6 +5,17 @@ export const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ESC
 
 export const money = (n) => Number(n || 0).toFixed(2);
 
+// Formats an amount with its currency symbol, e.g. money 1250 'EUR' -> "€1,250.00". Falls back to
+// the plain code for anything the browser does not recognise.
+export function formatMoney(n, currency = 'USD') {
+  const amount = Number(n || 0);
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
 export const titleCase = (s) => String(s ?? '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export const param = (name) => new URLSearchParams(location.search).get(name);

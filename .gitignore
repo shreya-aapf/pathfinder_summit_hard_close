@@ -19,3 +19,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Private API access notes (contains the universal key)
+API_ACCESS.md

@@ -5,6 +5,12 @@ import { url } from '../assets/js/site.js';
 
 const view = mountLayout('upload', 'Upload Invoice');
 
+const CURRENCIES = [
+  ['USD', 'US dollar'], ['EUR', 'Euro'], ['GBP', 'Pound sterling'], ['INR', 'Indian rupee'],
+  ['JPY', 'Japanese yen'], ['AUD', 'Australian dollar'], ['CAD', 'Canadian dollar'],
+  ['CHF', 'Swiss franc'], ['SGD', 'Singapore dollar'], ['AED', 'UAE dirham'],
+];
+
 view.innerHTML = `
   <div class="page-header">
     <div>
@@ -53,9 +59,17 @@ view.innerHTML = `
             <input type="text" id="gr_number" name="gr_number" class="text-input" placeholder="GR-2024-0044" />
           </div>
         </div>
-        <div class="field-group">
-          <label class="field-label" for="total_amount">Total amount <span class="required">*</span></label>
-          <input type="number" id="total_amount" name="total_amount" class="text-input" required min="0" step="0.01" placeholder="1250.00" />
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label" for="total_amount">Total amount <span class="required">*</span></label>
+            <input type="number" id="total_amount" name="total_amount" class="text-input" required min="0" step="0.01" placeholder="1250.00" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="currency">Currency <span class="required">*</span></label>
+            <select id="currency" name="currency" class="text-input" required>
+              ${CURRENCIES.map(([code, name]) => `<option value="${code}"${code === 'USD' ? ' selected' : ''}>${code} — ${name}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <button type="submit" class="btn btn--primary" id="submit-btn">Upload Invoice</button>
       </form>

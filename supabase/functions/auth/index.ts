@@ -36,6 +36,14 @@ router.post('/login', async ({ req }) => {
   return json({ token, expires_at, username });
 });
 
+// Swaps a still-valid token for a new one with a full lifetime.
+router.post('/refresh', async ({ req }) => {
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
+  const { token, expires_at } = await signToken(auth.user);
+  return json({ token, expires_at, username: auth.user });
+});
+
 router.get('/me', async ({ req }) => {
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;

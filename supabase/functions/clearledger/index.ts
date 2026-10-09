@@ -31,6 +31,16 @@ const webhook = (event: string, data: Row) => sendWebhook('clearledger', event, 
 const router = new Router();
 const guard = async (req: Request) => await authenticate(req, db, KEY_AUTH);
 
+// ISO 4217 style code. Returns the upper-cased code, the default when the value is absent, or null
+// when it is present but not three letters.
+function parseCurrency(v: unknown): string | null {
+  if (v === undefined || v === null || v === '') return 'USD';
+  const c = String(v).trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(c) ? c : null;
+}
+
+const toNumber = (v: unknown): number => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
+
 // Returns the invoice row, null when it does not exist (including ids that are not UUIDs).
 async function getInvoice(id: string): Promise<Row | null> {
   if (!UUID_RE.test(id)) return null;
@@ -81,6 +91,9 @@ router.post('/api/invoices', async ({ req }) => {
   const missing = required.filter((f) => !has(data, f));
   if (missing.length) return err(`Missing required fields: ${missing.join(', ')}`, 400);
 
+  const currency = parseCurrency(data.currency);
+  if (!currency) return err('currency must be a three-letter ISO 4217 code, e.g. USD, EUR, INR', 400);
+
   const dup = await db.from('invoices').select('id').eq('invoice_number', data.invoice_number);
   if (dup.error) return err(`Database error: ${dup.error.message}`, 500);
   if (dup.data.length) return err(`Invoice ${data.invoice_number} already exists`, 409);
@@ -94,6 +107,7 @@ router.post('/api/invoices', async ({ req }) => {
     po_number: data.po_number,
     gr_number: data.gr_number ?? null,
     total_amount: data.total_amount,
+    currency,
     match_status: data.match_status,
     variance_amount: data.variance_amount ?? 0,
     variance_pct: data.variance_pct ?? 0,
@@ -136,7 +150,7 @@ router.post('/api/invoices/upload', async ({ req }) => {
     form = await req.formData();
   } catch { /* handled as missing fields below */ }
 
-  const names = ['invoice_number', 'vendor_id', 'vendor_name', 'invoice_date', 'po_number', 'gr_number', 'total_amount'];
+  const names = ['invoice_number', 'vendor_id', 'vendor_name', 'invoice_date', 'po_number', 'gr_number', 'total_amount', 'currency'];
   const fields: Record<string, string> = {};
   for (const k of names) {
     const v = form?.get(k);
@@ -150,6 +164,8 @@ router.post('/api/invoices/upload', async ({ req }) => {
   if (!file) return err('Please choose an invoice file to upload.', 400);
   const total_amount = Number(fields.total_amount);
   if (!Number.isFinite(total_amount)) return err('Total amount must be a number.', 400);
+  const currency = parseCurrency(fields.currency);
+  if (!currency) return err('Currency must be a three-letter code such as USD, EUR or INR.', 400);
 
   let invoice: Row;
   try {
@@ -165,6 +181,7 @@ router.post('/api/invoices/upload', async ({ req }) => {
       po_number: fields.po_number,
       gr_number: fields.gr_number || null,
       total_amount,
+      currency,
       variance_amount: 0,
       variance_pct: 0,
       status: 'pending',
@@ -234,6 +251,111 @@ router.get('/api/invoices/:invoice_id', async ({ req, params }) => {
   invoice.vendor_flag = flag.error || !flag.data?.length ? null : flag.data[0];
   invoice.threshold_pct = await getThresholdPct();
   return json(invoice);
+});
+
+// Correct an existing invoice (for example after a mismatch is investigated). Only the fields that
+// are sent change. line_items entries are matched by line_number: existing lines are updated with
+// the fields given, unknown line numbers are added.
+const PATCH_TEXT = ['invoice_number', 'vendor_id', 'vendor_name', 'po_number'];
+const PATCH_NULLABLE_TEXT = ['invoice_date', 'gr_number'];
+const PATCH_NUMBERS = ['total_amount', 'variance_amount', 'variance_pct'];
+const LINE_NUMBERS = ['invoice_qty', 'invoice_unit_price', 'po_qty', 'po_unit_price', 'gr_qty', 'variance_amount'];
+const MISMATCH_TYPES = ['price_variance', 'qty_mismatch', 'missing_gr', 'ok'];
+const MATCH_STATUSES = ['mismatch', 'partial_match'];
+
+router.patch('/api/invoices/:invoice_id', async ({ req, params }) => {
+  const denied = await guard(req);
+  if (denied) return denied;
+  const data = await readJson(req);
+  if (!data || !Object.keys(data).length) return err('Request body must be JSON', 400);
+
+  const invoice = await getInvoice(params.invoice_id);
+  if (!invoice) return err('Invoice not found', 404);
+
+  const changes: Row = {};
+  for (const k of PATCH_TEXT) {
+    if (!has(data, k)) continue;
+    const v = typeof data[k] === 'string' ? data[k].trim() : '';
+    if (!v) return err(`${k} must be a non-empty string`, 400);
+    changes[k] = v;
+  }
+  for (const k of PATCH_NULLABLE_TEXT) {
+    if (!has(data, k)) continue;
+    const v = data[k];
+    if (v !== null && typeof v !== 'string') return err(`${k} must be a string or null`, 400);
+    changes[k] = v === null || v.trim() === '' ? null : v.trim();
+  }
+  for (const k of PATCH_NUMBERS) {
+    if (!has(data, k)) continue;
+    const v = toNumber(data[k]);
+    if (!Number.isFinite(v)) return err(`${k} must be a number`, 400);
+    changes[k] = v;
+  }
+  if (has(data, 'currency')) {
+    const c = parseCurrency(data.currency);
+    if (!c) return err('currency must be a three-letter ISO 4217 code, e.g. USD, EUR, INR', 400);
+    changes.currency = c;
+  }
+  if (has(data, 'match_status')) {
+    if (data.match_status !== null && !MATCH_STATUSES.includes(data.match_status)) {
+      return err(`match_status must be one of: ${MATCH_STATUSES.join(', ')}, or null`, 400);
+    }
+    changes.match_status = data.match_status;
+  }
+
+  const lineInput: Row[] | null = has(data, 'line_items') ? data.line_items : null;
+  if (lineInput !== null && (!Array.isArray(lineInput) || lineInput.some((l) => !l || typeof l !== 'object' || !Number.isInteger(l.line_number)))) {
+    return err('line_items must be a list of objects, each with an integer line_number', 400);
+  }
+  const lineRows: Row[] = [];
+  for (const li of lineInput ?? []) {
+    const row: Row = { invoice_id: invoice.id, line_number: li.line_number };
+    if (has(li, 'description')) row.description = li.description ?? null;
+    for (const k of LINE_NUMBERS) {
+      if (!has(li, k)) continue;
+      const v = li[k] === null ? null : toNumber(li[k]);
+      if (v !== null && !Number.isFinite(v)) return err(`line ${li.line_number}: ${k} must be a number`, 400);
+      row[k] = v;
+    }
+    if (has(li, 'mismatch_type')) {
+      if (!MISMATCH_TYPES.includes(li.mismatch_type)) return err(`line ${li.line_number}: mismatch_type must be one of: ${MISMATCH_TYPES.join(', ')}`, 400);
+      row.mismatch_type = li.mismatch_type;
+    }
+    lineRows.push(row);
+  }
+
+  if (!Object.keys(changes).length && !lineRows.length) {
+    return err('No updatable fields in the request body', 400);
+  }
+
+  if (changes.invoice_number && changes.invoice_number !== invoice.invoice_number) {
+    const dup = await db.from('invoices').select('id').eq('invoice_number', changes.invoice_number);
+    if (dup.error) return err(`Database error: ${dup.error.message}`, 500);
+    if (dup.data.length) return err(`Invoice ${changes.invoice_number} already exists`, 409);
+  }
+
+  const upd = await db.from('invoices').update({ ...changes, updated_at: new Date().toISOString() }).eq('id', invoice.id);
+  if (upd.error) return err(`Failed to update invoice: ${upd.error.message}`, 500);
+
+  if (lineRows.length) {
+    const existing = await db.from('invoice_line_items').select('id, line_number').eq('invoice_id', invoice.id);
+    if (existing.error) return err(`Invoice updated but line items failed: ${existing.error.message}`, 500);
+    const byNumber = new Map<number, string>(existing.data.map((r: Row) => [r.line_number, r.id]));
+    for (const row of lineRows) {
+      const id = byNumber.get(row.line_number);
+      const res = id
+        ? await db.from('invoice_line_items').update(row).eq('id', id)
+        : await db.from('invoice_line_items').insert({ mismatch_type: 'ok', variance_amount: 0, ...row });
+      if (res.error) return err(`Invoice updated but line items failed: ${res.error.message}`, 500);
+    }
+  }
+
+  const updated = await getInvoice(invoice.id);
+  if (!updated) return err('Invoice not found', 404);
+  const li = await db.from('invoice_line_items').select('*').eq('invoice_id', invoice.id).order('line_number');
+  updated.line_items = li.error ? [] : li.data ?? [];
+  await webhook('invoice.updated', updated);
+  return json(updated);
 });
 
 router.patch('/api/invoices/:invoice_id/action', async ({ req, params }) => {

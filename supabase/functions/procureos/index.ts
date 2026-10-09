@@ -8,8 +8,8 @@ import { downloadObject, readFile, removeObject, secureFilename, signedUrl, Uplo
 const KEY_AUTH: KeyAuthConfig = {
   table: 'po_api_keys',
   demoHash: 'e2ea498f352094908ededbb13b347a72657a0ba3348b5f11bf504e0343ac2d86',
-  missing: { message: 'Unauthorized', status: 401 },
-  invalid: { message: 'Unauthorized', status: 401 },
+  missing: { message: 'Missing X-API-Key header', status: 401 },
+  invalid: { message: 'Invalid API key', status: 401 },
 };
 
 const ALLOWED_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'doc', 'docx', 'xls', 'xlsx'];

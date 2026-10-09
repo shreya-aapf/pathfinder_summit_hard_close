@@ -25,12 +25,12 @@ const payload = (gr_number, extra = {}) => ({
   received_date: '2024-11-05', received_by: 'Test Receiver', status: 'partial', line_items: [line()], ...extra,
 });
 
-test('API auth: 401 for a missing key, 403 for an invalid key', async () => {
+test('API auth: 401 for a missing key and for an invalid key', async () => {
   const missing = await call('receiptslog', '/api/grs');
   assert.equal(missing.status, 401);
   assert.equal(missing.data.error, 'Missing X-API-Key header');
   const invalid = await call('receiptslog', '/api/grs', { apiKey: 'wrong-key' });
-  assert.equal(invalid.status, 403);
+  assert.equal(invalid.status, 401);
   assert.equal(invalid.data.error, 'Invalid API key');
   for (const path of ['/api/gr/x', '/api/gr/by-po/x']) assert.equal((await call('receiptslog', path)).status, 401);
   assert.equal((await call('receiptslog', '/api/grs', { method: 'POST', json: {} })).status, 401);
@@ -165,5 +165,5 @@ test('API key management needs a login and returns the key once', async () => {
   assert.ok(!JSON.stringify(list.data).includes(made.data.key));
 
   assert.equal((await call('receiptslog', `/api/keys/${made.data.id}`, { method: 'DELETE', token })).status, 204);
-  assert.equal((await call('receiptslog', '/api/grs?limit=1', { apiKey: made.data.key })).status, 403);
+  assert.equal((await call('receiptslog', '/api/grs?limit=1', { apiKey: made.data.key })).status, 401);
 });

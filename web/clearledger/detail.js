@@ -1,5 +1,5 @@
 import { api, openDocument } from '../assets/js/api.js';
-import { $, esc, flashNext, param } from '../assets/js/ui.js';
+import { $, esc, flashNext, formatMoney, param } from '../assets/js/ui.js';
 import { flash, mountLayout, showToast } from './layout.js';
 import { url } from '../assets/js/site.js';
 
@@ -12,7 +12,7 @@ const MISMATCH_BADGE = {
 };
 const ACTION_BADGE = { approve: ['green', 'Approved'], contact_vendor: ['blue', 'Contact Vendor'], escalate: ['purple', 'Escalated'] };
 
-const money = (n) => Number(n || 0).toFixed(2);
+let cur = (n) => formatMoney(n);
 const badge = ([cls, label]) => `<span class="badge badge--${cls}">${esc(label)}</span>`;
 const ALERT_ICON = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
 const WARN_ICON = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
@@ -29,6 +29,7 @@ async function resolveId() {
 
 function render(inv) {
   const id = inv.id;
+  cur = (n) => formatMoney(n, inv.currency);
   const vp = parseFloat(inv.variance_pct) || 0;
   const threshold = Number(inv.threshold_pct ?? 2.5);
   const high = vp > threshold;
@@ -70,11 +71,11 @@ function render(inv) {
             <td class="cell-center">${esc(li.line_number)}</td>
             <td>${esc(li.description)}</td>
             <td class="cell-num">${esc(li.invoice_qty)}</td>
-            <td class="cell-num">$${money(li.invoice_unit_price)}</td>
+            <td class="cell-num">${esc(cur(li.invoice_unit_price))}</td>
             <td class="cell-num ${li.po_qty !== li.invoice_qty ? 'cell-diff' : ''}">${esc(li.po_qty)}</td>
-            <td class="cell-num ${li.po_unit_price !== li.invoice_unit_price ? 'cell-diff' : ''}">$${money(li.po_unit_price)}</td>
+            <td class="cell-num ${li.po_unit_price !== li.invoice_unit_price ? 'cell-diff' : ''}">${esc(cur(li.po_unit_price))}</td>
             <td class="cell-num ${li.gr_qty !== li.invoice_qty ? 'cell-diff' : ''}">${esc(li.gr_qty)}</td>
-            <td class="cell-num cell-variance">${li.variance_amount ? `$${money(li.variance_amount)}` : '—'}</td>
+            <td class="cell-num cell-variance">${li.variance_amount ? `${esc(cur(li.variance_amount))}` : '—'}</td>
             <td>${badge(MISMATCH_BADGE[li.mismatch_type] || ['gray', li.mismatch_type ?? ''])}</td>
           </tr>`).join('')}
         </tbody>
@@ -118,7 +119,7 @@ function render(inv) {
             </div>
           </div>
           <div class="detail-header-right">
-            <div class="total-amount">$${money(inv.total_amount)}</div>
+            <div class="total-amount">${esc(cur(inv.total_amount))}</div>
             <div class="total-label">Total Invoice Amount</div>
           </div>
         </div>
@@ -130,7 +131,7 @@ function render(inv) {
           <div class="match-summary-body">
             <div class="match-summary-title">${matchTitle}</div>
             <div class="match-summary-detail">
-              Variance: <strong>$${money(inv.variance_amount)}</strong> &nbsp;|&nbsp;
+              Variance: <strong>${esc(cur(inv.variance_amount))}</strong> &nbsp;|&nbsp;
               <strong>${vp.toFixed(2)}%</strong> &nbsp;vs threshold ${threshold.toFixed(1)}%
             </div>
           </div>
